@@ -31,7 +31,6 @@ type MdConfig {
   updatedAt: InstantTime
   rawConfig: String
   processedConfig: String
-  previewEnvironmentsConfigured: Boolean
 }
 
 type MdEnvironment {

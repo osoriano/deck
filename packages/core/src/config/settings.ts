@@ -73,7 +73,6 @@ export interface IManagedDeliveryURLs {
   pinning: string;
   resourceStatus: string;
   markAsBad: string;
-  previewEnvironments?: string;
 }
 
 export interface ISpinnakerSettings {

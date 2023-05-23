@@ -110,10 +110,7 @@ query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironm
   application(appName: $appName) {
     id
     name
-    config {
-      id
-      previewEnvironmentsConfigured
-    }
+    account
     environments {
       ...baseEnvironmentFields
       isDeleting

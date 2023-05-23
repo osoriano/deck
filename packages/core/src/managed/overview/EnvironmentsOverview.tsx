@@ -2,7 +2,6 @@ import React from 'react';
 
 import { ApplicationQueryError } from '../ApplicationQueryError';
 import { EnvironmentOverview } from './EnvironmentOverview';
-import { PreviewEnvironments } from './PreviewEnvironments';
 import { EnvironmentsRender, useOrderedEnvironment } from '../environmentBaseElements/EnvironmentsRender';
 import { useFetchApplicationQuery } from '../graphql/graphql-sdk';
 import { Messages } from '../messages/Messages';
@@ -26,12 +25,10 @@ export const EnvironmentsOverview = () => {
     environments.filter((env) => !env.isPreview),
   );
 
-  const previewEnvironments = useOrderedEnvironment(
+  const { environments: previewEnvironments, ...previewEnvironmentsProps } = useOrderedEnvironment(
     wrapperRef,
     environments.filter((env) => env.isPreview),
   );
-
-  const previewEnvironmentsConfigured = data?.application?.config?.previewEnvironmentsConfigured;
 
   let content;
   if (loading && !data) {
@@ -49,10 +46,16 @@ export const EnvironmentsOverview = () => {
                 <EnvironmentOverview key={env.name} environment={env} />
               ))}
             </EnvironmentsRender>
-            <PreviewEnvironments
-              orderedEnvironments={previewEnvironments}
-              isConfigured={previewEnvironmentsConfigured}
-            />
+            {Boolean(previewEnvironments.length) && (
+              <h4 className="sp-margin-2xl-top sp-margin-m-bottom self-left">
+                <b>Preview Environments</b>
+              </h4>
+            )}
+            <EnvironmentsRender {...previewEnvironmentsProps}>
+              {previewEnvironments.map((env) => (
+                <EnvironmentOverview key={env.name} environment={env} />
+              ))}
+            </EnvironmentsRender>
           </>
         ) : (
           <div className="error-message">No environments found</div>

@@ -120,7 +120,6 @@ export interface MdConfig {
   updatedAt?: Maybe<Scalars['InstantTime']>;
   rawConfig?: Maybe<Scalars['String']>;
   processedConfig?: Maybe<Scalars['String']>;
-  previewEnvironmentsConfigured?: Maybe<Scalars['Boolean']>;
 }
 
 export interface MdConstraint {
@@ -553,8 +552,7 @@ export type FetchApplicationQueryVariables = Exact<{
 
 export type FetchApplicationQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MdApplication' } & Pick<MdApplication, 'id' | 'name'> & {
-        config?: Maybe<{ __typename?: 'MdConfig' } & Pick<MdConfig, 'id' | 'previewEnvironmentsConfigured'>>;
+    { __typename?: 'MdApplication' } & Pick<MdApplication, 'id' | 'name' | 'account'> & {
         environments: Array<
           { __typename?: 'MdEnvironment' } & Pick<MdEnvironment, 'isDeleting'> & {
               state: { __typename?: 'MdEnvironmentState' } & Pick<MdEnvironmentState, 'id'> & {
@@ -993,10 +991,7 @@ export const FetchApplicationDocument = gql`
     application(appName: $appName) {
       id
       name
-      config {
-        id
-        previewEnvironmentsConfigured
-      }
+      account
       environments {
         ...baseEnvironmentFields
         isDeleting
