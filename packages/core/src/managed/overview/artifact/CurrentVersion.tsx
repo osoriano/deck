@@ -5,37 +5,36 @@ import { ArtifactVersionTasks } from './ArtifactVersionTasks';
 import { Constraints } from './Constraints';
 import { VersionTitle } from './VersionTitle';
 import { ArtifactActions } from '../../artifactActions/ArtifactActions';
-import type { QueryArtifact, QueryArtifactVersion } from '../types';
+import type { QueryArtifactVersion } from '../types';
 import { useCreateVersionRollbackActions } from './useCreateRollbackActions.hook';
 import { extractVersionRollbackDetails, isVersionVetoed } from './utils';
-import { toPinnedMetadata } from '../../versionMetadata/MetadataComponents';
+import type { VersionMessageData } from '../../versionMetadata/MetadataComponents';
 import { getBaseMetadata, getVersionCompareLinks, VersionMetadata } from '../../versionMetadata/VersionMetadata';
 
-interface ICurrentVersionProps<T = QueryArtifactVersion> {
-  data: T;
+interface ICurrentVersionProps {
+  data: QueryArtifactVersion;
   environment: string;
   reference: string;
   numNewerVersions?: number;
-  pinnedVersion: QueryArtifact['pinnedVersion'];
+  pinned?: VersionMessageData;
   isPreview?: boolean;
 }
 
-export const CurrentVersionInternal = ({
+export const CurrentVersion = ({
   data,
   environment,
   reference,
   numNewerVersions,
-  pinnedVersion,
+  pinned,
   isPreview,
 }: ICurrentVersionProps) => {
   const { gitMetadata, constraints, verifications, postDeploy, isCurrent } = data;
-  const pinnedMetadata = pinnedVersion?.version === data.version ? toPinnedMetadata(pinnedVersion) : undefined;
   const actions = useCreateVersionRollbackActions({
     environment,
     reference,
     version: data.version,
     isVetoed: isVersionVetoed(data),
-    isPinned: Boolean(pinnedVersion),
+    isPinned: Boolean(pinned),
     isCurrent,
     selectedVersion: extractVersionRollbackDetails(data),
   });
@@ -50,7 +49,7 @@ export const CurrentVersionInternal = ({
   return (
     <div className="artifact-current-version">
       <VersionTitle gitMetadata={gitMetadata} buildNumber={data?.buildNumber} version={data.version} />
-      <VersionMetadata {...getBaseMetadata(data)} buildsBehind={numNewerVersions} pinned={pinnedMetadata} />
+      <VersionMetadata {...getBaseMetadata(data)} buildsBehind={numNewerVersions} pinned={pinned} />
       {!isPreview && (
         <ArtifactActions
           buildNumber={data?.buildNumber}
@@ -67,8 +66,4 @@ export const CurrentVersionInternal = ({
       {postDeploy && <ArtifactVersionTasks type="Post deploy" artifact={versionProps} tasks={postDeploy} />}
     </div>
   );
-};
-
-export const CurrentVersion = ({ data, ...otherProps }: ICurrentVersionProps<QueryArtifactVersion | undefined>) => {
-  return data ? <CurrentVersionInternal data={data} {...otherProps} /> : <div>No version is deployed</div>;
 };

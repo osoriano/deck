@@ -537,14 +537,6 @@ export type BaseEnvironmentFieldsFragment = { __typename?: 'MdEnvironment' } & P
     >;
   };
 
-export type BaesResourceFieldsFragment = { __typename?: 'MdResource' } & Pick<
-  MdResource,
-  'id' | 'kind' | 'displayName' | 'rawDefinition'
-> & {
-    moniker?: Maybe<{ __typename?: 'MdMoniker' } & Pick<MdMoniker, 'app' | 'stack' | 'detail'>>;
-    location?: Maybe<{ __typename?: 'MdLocation' } & Pick<MdLocation, 'account' | 'regions'>>;
-  };
-
 export type FetchApplicationQueryVariables = Exact<{
   appName: Scalars['String'];
   statuses?: Maybe<Array<MdArtifactStatusInEnvironment> | MdArtifactStatusInEnvironment>;
@@ -565,11 +557,20 @@ export type FetchApplicationQuery = { __typename?: 'Query' } & {
                           versions?: Maybe<
                             Array<{ __typename?: 'MdArtifactVersionInEnvironment' } & DetailedVersionFieldsFragment>
                           >;
-                          resources?: Maybe<Array<{ __typename?: 'MdResource' } & BaesResourceFieldsFragment>>;
                         } & ArtifactPinnedVersionFieldsFragment
                     >
                   >;
-                  resources?: Maybe<Array<{ __typename?: 'MdResource' } & BaesResourceFieldsFragment>>;
+                  resources?: Maybe<
+                    Array<
+                      { __typename?: 'MdResource' } & Pick<
+                        MdResource,
+                        'id' | 'kind' | 'displayName' | 'rawDefinition'
+                      > & {
+                          moniker?: Maybe<{ __typename?: 'MdMoniker' } & Pick<MdMoniker, 'app' | 'stack' | 'detail'>>;
+                          location?: Maybe<{ __typename?: 'MdLocation' } & Pick<MdLocation, 'account' | 'regions'>>;
+                        }
+                    >
+                  >;
                 };
             } & BaseEnvironmentFieldsFragment
         >;
@@ -969,23 +970,6 @@ export const BaseEnvironmentFieldsFragmentDoc = gql`
     basedOn
   }
 `;
-export const BaesResourceFieldsFragmentDoc = gql`
-  fragment baesResourceFields on MdResource {
-    id
-    kind
-    displayName
-    moniker {
-      app
-      stack
-      detail
-    }
-    location {
-      account
-      regions
-    }
-    rawDefinition
-  }
-`;
 export const FetchApplicationDocument = gql`
   query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironment!]) {
     application(appName: $appName) {
@@ -1007,12 +991,21 @@ export const FetchApplicationDocument = gql`
               ...detailedVersionFields
             }
             ...artifactPinnedVersionFields
-            resources {
-              ...baesResourceFields
-            }
           }
           resources {
-            ...baesResourceFields
+            id
+            kind
+            displayName
+            moniker {
+              app
+              stack
+              detail
+            }
+            location {
+              account
+              regions
+            }
+            rawDefinition
           }
         }
       }
@@ -1021,7 +1014,6 @@ export const FetchApplicationDocument = gql`
   ${BaseEnvironmentFieldsFragmentDoc}
   ${DetailedVersionFieldsFragmentDoc}
   ${ArtifactPinnedVersionFieldsFragmentDoc}
-  ${BaesResourceFieldsFragmentDoc}
 `;
 
 /**

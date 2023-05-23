@@ -1,7 +1,6 @@
 import { isEmpty } from 'lodash';
 import React from 'react';
 
-import { ArtifactCollapsibleSection } from './ArtifactCollapsibleSection';
 import { Constraints } from './Constraints';
 import { VersionTitle } from './VersionTitle';
 import { ArtifactActions } from '../../artifactActions/ArtifactActions';
@@ -17,12 +16,11 @@ export interface IPendingVersionsProps {
   artifact: QueryArtifact;
   title: string;
   versions?: QueryArtifactVersion[];
-  isDeploying?: boolean;
 }
 
 const NUM_VERSIONS_WHEN_COLLAPSED = 1;
 
-export const ArtifactVersions = ({ artifact, versions, title, isDeploying }: IPendingVersionsProps) => {
+export const ArtifactVersions = ({ artifact, versions, title }: IPendingVersionsProps) => {
   const numVersions = versions?.length || 0;
   const [isExpanded, setIsExpanded] = React.useState(false);
   const logEvent = useLogEvent('ArtifactPendingVersion');
@@ -32,11 +30,8 @@ export const ArtifactVersions = ({ artifact, versions, title, isDeploying }: IPe
   const versionsToShow = isExpanded ? versions : versions.slice(0, NUM_VERSIONS_WHEN_COLLAPSED);
   const { pinnedVersion } = artifact;
   return (
-    <ArtifactCollapsibleSection
-      outerDivClassName="artifact-versions artifact-section"
-      heading={title}
-      isUpdating={isDeploying}
-    >
+    <section className="artifact-pending-versions">
+      <div className="artifact-versions-title">{title}</div>
       <div className="artifact-pending-versions-list">
         {versionsToShow.map((version, index) => (
           <PendingVersion
@@ -63,7 +58,7 @@ export const ArtifactVersions = ({ artifact, versions, title, isDeploying }: IPe
           </div>
         ) : undefined}
       </div>
-    </ArtifactCollapsibleSection>
+    </section>
   );
 };
 

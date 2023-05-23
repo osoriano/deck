@@ -126,7 +126,7 @@ export const Constraints = ({
         <CollapsibleSection
           heading={({ chevron }) => (
             <div className="horizontal">
-              <span className="uppercase">Constraints</span>: {summary.text} {chevron}
+              Constraints: {summary.text} {chevron}
             </div>
           )}
           outerDivClassName=""

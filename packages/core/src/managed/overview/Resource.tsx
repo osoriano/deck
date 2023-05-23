@@ -1,9 +1,7 @@
-import classnames from 'classnames';
 import React from 'react';
 
 import { ResourceTask } from './ResourceTask';
 import { ConfirmationModalService } from '../../confirmationModal/confirmationModal.service';
-import type { IEnvironmentItemProps } from '../environmentBaseElements/EnvironmentItem';
 import { EnvironmentItem } from '../environmentBaseElements/EnvironmentItem';
 import type { MdResourceActuationState } from '../graphql/graphql-sdk';
 import {
@@ -16,6 +14,7 @@ import { showManagedResourceHistoryModal } from '../resourceHistory/ManagedResou
 import { showResourceDefinitionModal } from '../resources/ResourceDefinitionModal';
 import { ResourceTitle } from '../resources/ResourceTitle';
 import { ToggleResourceManagement } from '../resources/ToggleResourceManagement';
+import type { IResourceLinkProps } from '../resources/resourceRegistry';
 import { resourceManager } from '../resources/resourceRegistry';
 import type { QueryResource } from './types';
 import { getIsDebugMode } from '../utils/debugMode';
@@ -117,82 +116,68 @@ const Status = ({ appName, environmentName, resourceId, regions, account }: ISta
   );
 };
 
-interface IBaseResourceProps {
-  resource: QueryResource;
-  environment: string;
-}
-
-const ResourceMetadata = ({ resource }: IBaseResourceProps) => {
+export const Resource = ({ resource, environment }: { resource: QueryResource; environment: string }) => {
+  const icon = resourceManager.getIcon(resource.kind);
+  const app = useApplicationContextSafe();
   const logEvent = useLogEvent('Resource');
   const isDebug = getIsDebugMode();
 
   const account = resource.location?.account;
-  const regions = resource.location?.regions || [];
 
-  return (
-    <div className="resource-metadata delimited-elements">
-      <span>
-        {regions.map((region, index) => (
-          <span key={region}>
-            {region}
-            {index < regions.length - 1 && ', '}
-          </span>
-        ))}
-      </span>
-      {account && <span>{account}</span>}
-      <span>
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            showManagedResourceHistoryModal({ id: resource.id, displayName: resource.displayName || resource.id });
-            logEvent({ action: 'ViewHistory' });
-          }}
-        >
-          View history
-        </a>
-      </span>
-      {isDebug && (
-        <span>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              showResourceDefinitionModal({ resource: resource });
-              logEvent({ action: 'ViewDefinition' });
-            }}
-          >
-            View definition
-          </a>
-        </span>
-      )}
-    </div>
-  );
-};
+  const resourceLinkProps: IResourceLinkProps = {
+    kind: resource.kind,
+    displayName: resource.displayName,
+    account,
+    detail: resource.moniker?.detail,
+    stack: resource.moniker?.stack,
+  };
 
-export const Resource = ({
-  resource,
-  environment,
-  withPadding,
-  size,
-  className,
-}: IBaseResourceProps & Pick<IEnvironmentItemProps, 'size' | 'withPadding' | 'className'>) => {
-  const icon = resourceManager.getIcon(resource.kind);
-  const app = useApplicationContextSafe();
-
-  const account = resource.location?.account;
   const regions = resource.location?.regions || [];
 
   return (
     <EnvironmentItem
       iconName={icon}
       iconTooltip={resource.kind}
-      className={classnames('Resource', className)}
-      title={<ResourceTitle resource={resource} />}
-      size={size}
-      withPadding={withPadding}
+      className="Resource"
+      title={<ResourceTitle props={resourceLinkProps} />}
     >
-      <ResourceMetadata environment={environment} resource={resource} />
+      <div className="resource-metadata delimited-elements">
+        <span>
+          {regions.map((region, index) => (
+            <span key={region}>
+              {region}
+              {index < regions.length - 1 && ', '}
+            </span>
+          ))}
+        </span>
+        {account && <span>{account}</span>}
+        <span>
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              showManagedResourceHistoryModal({ id: resource.id, displayName: resource.displayName || resource.id });
+              logEvent({ action: 'ViewHistory' });
+            }}
+          >
+            View history
+          </a>
+        </span>
+        {isDebug && (
+          <span>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                showResourceDefinitionModal({ resource: resource });
+                logEvent({ action: 'ViewDefinition' });
+              }}
+            >
+              View definition
+            </a>
+          </span>
+        )}
+      </div>
       <div>
         <Status
           appName={app.name}

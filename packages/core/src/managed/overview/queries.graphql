@@ -90,22 +90,6 @@ fragment baseEnvironmentFields on MdEnvironment {
   basedOn
 }
 
-fragment baesResourceFields on MdResource {
-  id
-  kind
-  displayName
-  moniker {
-    app
-    stack
-    detail
-  }
-  location {
-    account
-    regions
-  }
-  rawDefinition
-}
-
 query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironment!]) {
   application(appName: $appName) {
     id
@@ -126,12 +110,21 @@ query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironm
             ...detailedVersionFields
           }
           ...artifactPinnedVersionFields
-          resources {
-            ...baesResourceFields
-          }
         }
         resources {
-          ...baesResourceFields
+          id
+          kind
+          displayName
+          moniker {
+            app
+            stack
+            detail
+          }
+          location {
+            account
+            regions
+          }
+          rawDefinition
         }
       }
     }

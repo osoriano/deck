@@ -1,19 +1,12 @@
 import React from 'react';
 
-import type { QueryResource } from '../overview/types';
+import type { IResourceLinkProps } from './resourceRegistry';
 import { useGenerateLink } from './useGetResourceLink.hook';
 import { useLogEvent } from '../utils/logging';
 
-export const ResourceTitle = ({ resource }: { resource: QueryResource }) => {
-  const account = resource.location?.account;
-  const { displayName, kind } = resource;
-  const linkProps = useGenerateLink({
-    kind: kind,
-    displayName,
-    account,
-    detail: resource.moniker?.detail,
-    stack: resource.moniker?.stack,
-  });
+export const ResourceTitle = ({ props }: { props: IResourceLinkProps }) => {
+  const { displayName } = props;
+  const linkProps = useGenerateLink(props);
   const logEvent = useLogEvent('Resource');
 
   return (
@@ -23,7 +16,7 @@ export const ResourceTitle = ({ resource }: { resource: QueryResource }) => {
           href={linkProps.href}
           {...(linkProps.isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : undefined)}
           onClick={() => {
-            logEvent({ action: 'OpenCommit', data: { kind, account } });
+            logEvent({ action: 'OpenCommit', data: { kind: props.kind, account: props.account } });
           }}
         >
           {displayName}
