@@ -29,7 +29,6 @@ export interface IConstraintHandler<K = string> {
   /** The icon can be a string (from IconNames) or a partial map from statuses to IconNames */
   iconName: IconNames | { [status in ConstraintStatus | 'DEFAULT']?: IconNames };
 
-  /** Stricter format of the title */
   displayTitle?: {
     /** A user friendly name of the constraint */
     displayName: string;
@@ -38,7 +37,7 @@ export interface IConstraintHandler<K = string> {
     displayStatus: (props: { constraint: RelaxedConstraint }) => string;
   };
 
-  /** DEPRECATED - Render function of the constraint title. If displayTitle exists it takes precedence */
+  /** Render function of the constraint title. If displayTitle exists it takes precedence */
   titleRender?: React.ComponentType<{ constraint: RelaxedConstraint }>;
 
   /** Optional render function of the constraint description */
@@ -46,12 +45,6 @@ export interface IConstraintHandler<K = string> {
 
   /** Display actions to override the constraint - (fail or pass) */
   overrideActions?: { [status in ConstraintStatus]?: IConstraintOverrideAction[] };
-
-  /** determines when to show the restart constraint button. By default, only when the status is FAIL  */
-  restartProps?: {
-    isVisible?: (props: { constraint: RelaxedConstraint }) => boolean;
-    displayName?: string;
-  };
 }
 
 class ConstraintsManager extends BasePluginManager<IConstraintHandler> {
@@ -114,19 +107,6 @@ class ConstraintsManager extends BasePluginManager<IConstraintHandler> {
     const actions = this.getHandler(constraint.type)?.overrideActions;
     return actions?.[constraint.status];
   }
-
-  private defaultShowRestart = ({ constraint }: { constraint: RelaxedConstraint }) => {
-    return constraint.status === 'FAIL';
-  };
-
-  isRestartVisible(constraint: IConstraint): boolean {
-    const showRestartFunc = this.getHandler(constraint.type)?.restartProps?.isVisible || this.defaultShowRestart;
-    return showRestartFunc({ constraint });
-  }
-
-  getRestartDisplayName(constraint: IConstraint): string {
-    return this.getHandler(constraint.type)?.restartProps?.displayName || 'Reset';
-  }
 }
 
 const baseHandlers: Array<IConstraintHandler<IConstraint['type']>> = [
@@ -146,9 +126,6 @@ const baseHandlers: Array<IConstraintHandler<IConstraint['type']>> = [
         },
       ],
     },
-    restartProps: {
-      isVisible: () => false,
-    },
   },
   {
     kind: 'depends-on',
@@ -156,9 +133,6 @@ const baseHandlers: Array<IConstraintHandler<IConstraint['type']>> = [
     displayTitle: {
       displayName: 'Depends on',
       displayStatus: getDependsOnStatus,
-    },
-    restartProps: {
-      isVisible: () => false,
     },
   },
   {
