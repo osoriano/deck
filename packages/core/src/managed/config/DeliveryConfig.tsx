@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { RelativeTimestamp } from '../RelativeTimestamp';
+import { SETTINGS } from '../../config/settings';
 import type { FetchApplicationManagementDataQueryVariables } from '../graphql/graphql-sdk';
 import { FetchApplicationManagementDataDocument, useImportDeliveryConfigMutation } from '../graphql/graphql-sdk';
 import { useApplicationContextSafe } from '../../presentation/hooks/useApplicationContext.hook';
@@ -58,7 +59,7 @@ export const DeliveryConfig: React.FC<IDeliveryConfigProps> = ({ config, updated
               Last update: <RelativeTimestamp timestamp={updatedAt} withSuffix removeStyles />
             </small>
           )}
-          {!isProcessed && <ReImportConfig />}
+          {SETTINGS.feature.mdGitIntegration && !isProcessed && <ReImportConfig />}
         </div>
       </div>
       {children}
