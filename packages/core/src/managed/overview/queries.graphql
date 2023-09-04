@@ -1,4 +1,4 @@
-fragment actionDetails on MdAction {
+fragment actionDetails on MD_Action {
   id
   actionId
   actionType
@@ -8,7 +8,7 @@ fragment actionDetails on MdAction {
   link
 }
 
-fragment detailedVersionFields on MdArtifactVersionInEnvironment {
+fragment detailedVersionFields on MD_ArtifactVersionInEnvironment {
   id
   buildNumber
   version
@@ -61,7 +61,7 @@ fragment detailedVersionFields on MdArtifactVersionInEnvironment {
   }
 }
 
-fragment artifactPinnedVersionFields on MdArtifact {
+fragment artifactPinnedVersionFields on MD_Artifact {
   pinnedVersion {
     id
     version
@@ -77,7 +77,7 @@ fragment artifactPinnedVersionFields on MdArtifact {
   }
 }
 
-fragment baseEnvironmentFields on MdEnvironment {
+fragment baseEnvironmentFields on MD_Environment {
   id
   name
   isPreview
@@ -90,7 +90,7 @@ fragment baseEnvironmentFields on MdEnvironment {
   basedOn
 }
 
-fragment baesResourceFields on MdResource {
+fragment baesResourceFields on MD_Resource {
   id
   kind
   displayName
@@ -106,8 +106,8 @@ fragment baesResourceFields on MdResource {
   rawDefinition
 }
 
-query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironment!]) {
-  application(appName: $appName) {
+query fetchApplication($appName: String!, $statuses: [MD_ArtifactStatusInEnvironment!]) {
+  application: md_application(appName: $appName) {
     id
     name
     config {
@@ -142,7 +142,7 @@ query fetchApplication($appName: String!, $statuses: [MdArtifactStatusInEnvironm
 }
 
 query fetchCurrentVersion($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     environments {
@@ -174,7 +174,7 @@ query fetchCurrentVersion($appName: String!) {
 }
 
 query fetchVersionsHistory($appName: String!, $limit: Int) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     environments {
@@ -217,7 +217,7 @@ query fetchVersionsHistory($appName: String!, $limit: Int) {
 }
 
 query fetchPinnedVersions($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     account
@@ -240,7 +240,7 @@ query fetchPinnedVersions($appName: String!) {
 }
 
 query fetchVersion($appName: String!, $versions: [String!]) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     account
@@ -265,7 +265,7 @@ query fetchVersion($appName: String!, $versions: [String!]) {
 }
 
 query fetchResourceStatus($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     environments {
@@ -292,7 +292,7 @@ query fetchResourceStatus($appName: String!) {
 }
 
 query fetchNotifications($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     notifications {
@@ -307,7 +307,7 @@ query fetchNotifications($appName: String!) {
 }
 
 query fetchApplicationManagementData($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     isPaused
@@ -329,62 +329,62 @@ query fetchApplicationManagementData($appName: String!) {
 }
 
 query fetchApplicationManagementStatus($appName: String!) {
-  application(appName: $appName) {
+  application: md_application(appName: $appName) {
     id
     name
     isPaused
   }
 }
 
-mutation UpdateConstraint($payload: MdConstraintStatusPayload!) {
-  updateConstraintStatus(payload: $payload)
+mutation UpdateConstraint($payload: MD_ConstraintStatusPayload!) {
+  md_updateConstraintStatus(payload: $payload)
 }
 
 mutation ToggleManagement($application: ID!, $isPaused: Boolean!) {
-  toggleManagement(application: $application, isPaused: $isPaused)
+  md_toggleManagement(application: $application, isPaused: $isPaused)
 }
 
-mutation PinVersion($payload: MdArtifactVersionActionPayload!) {
-  pinArtifactVersion(payload: $payload)
+mutation PinVersion($payload: MD_ArtifactVersionActionPayload!) {
+  md_pinArtifactVersion(payload: $payload)
 }
 
-mutation UnpinVersion($payload: MdUnpinArtifactVersionPayload!) {
-  unpinArtifactVersion(payload: $payload)
+mutation UnpinVersion($payload: MD_UnpinArtifactVersionPayload!) {
+  md_unpinArtifactVersion(payload: $payload)
 }
 
-mutation MarkVersionAsBad($payload: MdArtifactVersionActionPayload!) {
-  markArtifactVersionAsBad(payload: $payload)
+mutation MarkVersionAsBad($payload: MD_ArtifactVersionActionPayload!) {
+  md_markArtifactVersionAsBad(payload: $payload)
 }
 
-mutation MarkVersionAsGood($payload: MdMarkArtifactVersionAsGoodPayload!) {
-  markArtifactVersionAsGood(payload: $payload)
+mutation MarkVersionAsGood($payload: MD_MarkArtifactVersionAsGoodPayload!) {
+  md_markArtifactVersionAsGood(payload: $payload)
 }
 
-mutation RetryVersionAction($payload: MdRetryArtifactActionPayload!) {
-  retryArtifactVersionAction(payload: $payload) {
+mutation RetryVersionAction($payload: MD_RetryArtifactActionPayload!) {
+  md_retryArtifactVersionAction(payload: $payload) {
     ...actionDetails
   }
 }
 
-mutation UpdateGitIntegration($payload: MdUpdateGitIntegrationPayload!) {
-  updateGitIntegration(payload: $payload) {
+mutation UpdateGitIntegration($payload: MD_UpdateGitIntegrationPayload!) {
+  md_updateGitIntegration(payload: $payload) {
     id
     isEnabled
   }
 }
 
-mutation DismissNotification($payload: MdDismissNotificationPayload!) {
-  dismissNotification(payload: $payload)
+mutation DismissNotification($payload: MD_DismissNotificationPayload!) {
+  md_dismissNotification(payload: $payload)
 }
 
 mutation ImportDeliveryConfig($application: String!) {
-  importDeliveryConfig(application: $application)
+  md_importDeliveryConfig(application: $application)
 }
 
-mutation ToggleResourceManagement($payload: MdToggleResourceManagementPayload) {
-  toggleResourceManagement(payload: $payload)
+mutation ToggleResourceManagement($payload: MD_ToggleResourceManagementPayload) {
+  md_toggleResourceManagement(payload: $payload)
 }
 
-mutation RestartConstraintEvaluation($payload: MdRestartConstraintEvaluationPayload!) {
-  restartConstraintEvaluation(payload: $payload)
+mutation RestartConstraintEvaluation($payload: MD_RestartConstraintEvaluationPayload!) {
+  md_restartConstraintEvaluation(payload: $payload)
 }
