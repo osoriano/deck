@@ -1,4 +1,4 @@
-import type { MdConstraintStatus } from '../managed/graphql/graphql-sdk';
+import type { Md_ConstraintStatus } from '../managed/graphql/graphql-sdk';
 import type { IMoniker } from '../naming';
 
 export enum ManagedResourceStatus {
@@ -19,7 +19,7 @@ export enum ManagedResourceStatus {
 }
 
 type DeprecatedStatus = 'OVERRIDE_PASS' | 'OVERRIDE_FAIL' | 'NOT_EVALUATED'; // will be removed in future versions
-export type ConstraintStatus = DeprecatedStatus | MdConstraintStatus;
+export type ConstraintStatus = DeprecatedStatus | Md_ConstraintStatus;
 
 // Warning! Chaning this interface might affect existing plugins. Please make sure you don't break the API
 export interface IBaseConstraint {

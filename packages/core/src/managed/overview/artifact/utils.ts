@@ -88,7 +88,9 @@ export const isVersionPending = (version?: QueryArtifactVersion | SingleVersionA
 
 export type ICurrentVersion = NonNullable<
   NonNullable<
-    NonNullable<FetchCurrentVersionQuery['application']>['environments'][number]['state']['artifacts']
+    NonNullable<
+      Extract<FetchCurrentVersionQuery['application'], { name: string }>
+    >['environments'][number]['state']['artifacts']
   >[number]['versions']
 >[number];
 

@@ -1,6 +1,8 @@
 import type { FetchApplicationQuery } from '../graphql/graphql-sdk';
 
-export type QueryEnvironment = NonNullable<FetchApplicationQuery['application']>['environments'][number];
+export type QueryEnvironment = NonNullable<
+  Extract<FetchApplicationQuery['application'], { name: string }>
+>['environments'][number];
 
 export type QueryArtifact = NonNullable<QueryEnvironment['state']['artifacts']>[number];
 export type QueryResource = NonNullable<QueryEnvironment['state']['resources']>[number];

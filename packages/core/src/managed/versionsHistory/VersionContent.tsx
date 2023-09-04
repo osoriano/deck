@@ -108,7 +108,9 @@ const getDetailedVersionData = ({
   version: HistoryArtifactVersionExtended;
   versionsDetails: FetchVersionQuery | undefined;
 }) => {
-  const environmentData = versionsDetails?.application?.environments?.find((env) => env.name === environment);
+  const environmentData =
+    versionsDetails?.application?.__typename === 'MD_Application' &&
+    versionsDetails.application.environments?.find((env) => env.name === environment);
   const artifactData = environmentData?.state.artifacts?.find((artifact) => artifact.reference === version.reference);
   return artifactData?.versions?.find((v) => v.version === version.version);
 };

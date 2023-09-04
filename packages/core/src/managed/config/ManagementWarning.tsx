@@ -31,6 +31,10 @@ export const ManagementWarning = ({ appName }: { appName: string }) => {
     );
   }, [appName]);
 
+  if (data?.application?.__typename !== 'MD_Application') {
+    return null;
+  }
+
   if (data?.application?.isPaused) {
     return (
       <MessagesSection sticky>

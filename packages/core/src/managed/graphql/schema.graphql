@@ -1,9 +1,24 @@
 scalar InstantTime
 scalar JSON
 
+union MD_ApplicationResult = MD_Application | MD_Error
+
+type SPOT_Service @key(fields: "id") @extends {
+  id: ID! @external
+  managedDelivery: MD_ApplicationResult
+}
+
 type Query @extends {
-  application(appName: String!): MdApplication
-  md_application(appName: String!): MD_Application
+  md_application(appName: String!): MD_ApplicationResult
+  md_migration(appName: String!): MD_Migration
+  md_gitIntegration(appName: String!): MD_GitIntegration
+  md_dryRun(submittedDeliveryConfig: String!): MD_ActuationPlan
+  md_jsonSchema: MD_JsonSchema
+}
+
+type MD_JsonSchema {
+  id: String!
+  schema: JSON!
 }
 
 type MD_Application {
@@ -16,6 +31,132 @@ type MD_Application {
   notifications: [MD_Notification!]
   gitIntegration: MD_GitIntegration
   config: MD_Config
+  versionOnUnpinning(reference: String!, environment: String!): MD_ArtifactVersionInEnvironment
+  versionOnRollback(reference: String!, environment: String!): MD_ArtifactVersionInEnvironment
+  userPermissions: MD_UserPermissions
+}
+
+type MD_UserPermissions {
+  id: ID!
+  writeAccess: Boolean
+  error: String
+}
+
+type MD_Error {
+  id: ID!
+  message: String
+}
+
+type MD_Migration {
+  id: ID!
+  status: MD_MigrationStatus
+  deliveryConfig: JSON
+  userGeneratedDeliveryConfig: JSON @deprecated
+  userGeneratedConfig: MD_UserGeneratedConfig
+  prLink: String
+  actuationPlan: MD_ActuationPlan
+  warnings: [MD_Warning!]
+  pipelines: [MD_Pipeline!]
+}
+
+type MD_UserGeneratedConfig {
+  id: ID!
+  deliveryConfig: JSON!
+  updatedAt: InstantTime
+  updatedBy: String
+}
+
+type MD_Pipeline {
+  id: ID!
+  name: String
+  shape: String
+  status: MD_PipelineStatus
+  deployablePipeline: Boolean # contains a deploy stage?
+  reason: String # reason for non-supported pipeline
+  resources: [MD_ResourceSpec!] # will hold exported resources for the pipeline
+  constraints: [MD_ConstraintSpec!]# will hold exported constraints for the pipeline
+  artifacts: [MD_ArtifactSpec!]# will hold exported artifact for the pipeline
+}
+
+type MD_ArtifactSpec {
+  id: ID!
+  type: String
+  spec: JSON
+  warning: MD_Warning_type
+}
+
+type MD_ConstraintSpec {
+  id: ID!
+  type: String
+  spec: JSON
+}
+
+type MD_ResourceSpec{
+  id: ID!
+  kind: String
+  spec: JSON
+}
+
+
+enum MD_ConstraintType {
+  VERIFICATIONS
+  DEPENDS_ON
+  MANUAL_JUDGMENT
+  JENKINS
+}
+
+enum MD_PipelineStatus{
+  PROCESSED
+  EXPORTED
+  NOT_SUPPORTED
+}
+
+enum MD_Warning_type{
+  TAG_TO_RELEASE_ARTIFACT
+}
+
+type MD_Warning {
+  id: ID!
+  type: MD_Warning_type!
+  message: String
+}
+
+enum MD_ActuationPlanStatus {
+  PENDING,
+  COMPLETED,
+  FAILED
+}
+
+type MD_ActuationPlan {
+  id: ID!
+  status: MD_ActuationPlanStatus
+  environmentPlans: [MD_EnvironmentPlan!]
+}
+
+type MD_EnvironmentPlan {
+  id: ID!
+  environment: String!
+  resourcePlans: [MD_ResourcePlan!]
+}
+
+type MD_ResourcePlan {
+  id: ID!
+  action: MD_ResourceAction!
+  diff: JSON
+}
+
+enum MD_ResourceAction {
+  NONE,
+  CREATE,
+  UPDATE
+}
+
+enum MD_MigrationStatus {
+  NOT_READY, # Can't start the migration
+  READY_TO_START, # Ready to start, await user actions
+  PR_CREATED, # User created the PR
+  BLOCKED, # User requested assistance
+  COMPLETED # Migration completed
 }
 
 type MD_GitIntegration {
@@ -33,6 +174,7 @@ type MD_Config {
   rawConfig: String
   processedConfig: String
   previewEnvironmentsConfigured: Boolean
+  isMigrating: Boolean
 }
 
 type MD_Environment {
@@ -61,6 +203,12 @@ type MD_PinnedVersion {
   pinnedAt: InstantTime
   pinnedBy: String
   comment: String
+  type: MD_PinType
+}
+
+enum MD_PinType {
+  ROLLBACK,
+  LOCK
 }
 
 type MD_PausedInfo {
@@ -78,7 +226,6 @@ type MD_Artifact {
   reference: String!
   versions(statuses: [MD_ArtifactStatusInEnvironment!], versions: [String!], limit: Int): [MD_ArtifactVersionInEnvironment!]
   pinnedVersion: MD_PinnedVersion
-  latestApprovedVersion: MD_ArtifactVersionInEnvironment
   resources: [MD_Resource!]
 }
 
@@ -88,6 +235,7 @@ type MD_ArtifactVersionInEnvironment {
   buildNumber: String
   createdAt: InstantTime
   deployedAt: InstantTime
+  replacedAt: InstantTime
   gitMetadata: MD_GitMetadata
   packageDiff: MD_PackageDiff
   environment: String
@@ -171,12 +319,12 @@ type MD_PackageDiff {
 }
 
 type MD_PackageAndVersion {
-  package: String!
+  packageName: String!
   version: String!
 }
 
 type MD_PackageAndVersionChange {
-  package: String!
+  packageName: String!
   oldVersion: String!
   newVersion: String!
 }
@@ -191,22 +339,26 @@ enum MD_ResourceActuationStatus {
 }
 
 type MD_ResourceActuationState {
-  resourceId: String!
+  resourceId: ID!
   status: MD_ResourceActuationStatus!
   reason: String
   event: String
   tasks: [MD_ResourceTask!]
+  errors: [String!]
+  pausedInfo: MD_PausedInfo
 }
 
 type MD_ResourceTask {
   id: String!
   name: String!
-  running: Boolean!
+  fullName: String
+  running: Boolean
   summary: MD_ExecutionSummary
 }
 
 type MD_ExecutionSummary {
-  status: MD_TaskStatus!
+  id: ID!
+  status: MD_RolloutTargetStatus!
   currentStage: MD_StageDetail,
   stages: [MD_StageDetail!]
   deployTargets: [MD_DeployTarget!]
@@ -234,7 +386,7 @@ type MD_StageDetail {
   name: String
   startTime: InstantTime
   endTime: InstantTime
-  status: MD_TaskStatus
+  status: MD_RolloutTargetStatus
   refId: String
   requisiteStageRefIds: [String!]
 }
@@ -248,6 +400,7 @@ type MD_Resource {
   displayName: String
   location: MD_Location
   rawDefinition: String
+  isDeployable: Boolean
 }
 
 type MD_Moniker {
@@ -266,7 +419,8 @@ enum MD_ConstraintStatus {
   PENDING
   PASS
   FAIL
-  FORCE_PASS
+  FORCE_PASS,
+  SKIPPED
 }
 
 enum MD_ArtifactStatusInEnvironment {
@@ -294,7 +448,8 @@ enum MD_ActionStatus {
   PENDING
   PASS
   FAIL
-  FORCE_PASS
+  FORCE_PASS,
+  SKIPPED
 }
 
 enum MD_ActionType {
@@ -313,34 +468,71 @@ type MD_Action {
   actionType: MD_ActionType!
 }
 
+type MD_ValidateResult {
+  success: Boolean!
+  errors: [String!]
+}
+
 type Mutation @extends {
   md_updateConstraintStatus(payload: MD_ConstraintStatusPayload!): Boolean
   md_restartConstraintEvaluation(payload: MD_RestartConstraintEvaluationPayload!): Boolean
-  md_toggleManagement(application: ID!, isPaused: Boolean!, comment: String): Boolean
+  md_toggleManagement(application: ID!, isPaused: Boolean!, comment: String, cancelTasks: Boolean = false): Boolean
+  md_pauseManagement(payload: MD_PausePayload!): Boolean
+  md_resumeManagement(application: String!): Boolean
   md_pinArtifactVersion(payload: MD_ArtifactVersionActionPayload!): Boolean
   md_markArtifactVersionAsBad(payload: MD_ArtifactVersionActionPayload!): Boolean
   md_unpinArtifactVersion(payload: MD_UnpinArtifactVersionPayload!): Boolean
   md_markArtifactVersionAsGood(payload: MD_MarkArtifactVersionAsGoodPayload!): Boolean
   md_retryArtifactVersionAction(payload: MD_RetryArtifactActionPayload): MD_Action
   md_dismissNotification(payload: MD_DismissNotificationPayload!): Boolean
-  md_updateGitIntegration(payload: MD_UpdateGitIntegrationPayload): MD_GitIntegration
-  md_toggleResourceManagement(payload: MD_ToggleResourceManagementPayload): Boolean
+  md_updateGitIntegration(payload: MD_UpdateGitIntegrationPayload!): MD_GitIntegration
+  md_toggleResourceManagement(payload: MD_ToggleResourceManagementPayload!): Boolean
   md_importDeliveryConfig(application: String!): Boolean
+  md_rollbackToArtifactVersion(payload: MD_RollbackToVersionPayload!): Boolean
+  md_lockEnvironmentArtifact(payload: MD_ArtifactVersionActionPayload!): Boolean
+  md_redeployResource(payload: MD_RedeployResourcePayload!): Boolean
+  md_deployResourceImmediately(payload: MD_DeployResourceImmediatelyPayload!): Boolean
+  md_initiateApplicationMigration(payload: MD_InitiateApplicationMigrationPayload!): MD_Migration
+  md_autoSaveMigrationConfig(payload: MD_InitiateApplicationMigrationPayload!): Boolean
+  md_migrationReportIssue(payload: MD_MigrationReportIssuePayload!): Boolean
+  md_recheckResource(payload: MD_RecheckResourcePayload!): Boolean
+  md_validateDeliveryConfig(payload: MD_DeliveryConfigValidationPayload!): MD_ValidateResult
+  md_analyzePipelines(application: String!): MD_Migration
+}
 
-  #### Deprecated
+input MD_DeliveryConfigValidationPayload {
+  deliveryConfig: JSON!
+}
 
-  updateConstraintStatus(payload: MdConstraintStatusPayload!): Boolean
-  restartConstraintEvaluation(payload: MdRestartConstraintEvaluationPayload!): Boolean
-  toggleManagement(application: ID!, isPaused: Boolean!, comment: String): Boolean
-  pinArtifactVersion(payload: MdArtifactVersionActionPayload!): Boolean
-  markArtifactVersionAsBad(payload: MdArtifactVersionActionPayload!): Boolean
-  unpinArtifactVersion(payload: MdUnpinArtifactVersionPayload!): Boolean
-  markArtifactVersionAsGood(payload: MdMarkArtifactVersionAsGoodPayload!): Boolean
-  retryArtifactVersionAction(payload: MdRetryArtifactActionPayload): MdAction
-  dismissNotification(payload: MdDismissNotificationPayload!): Boolean
-  updateGitIntegration(payload: MdUpdateGitIntegrationPayload): MdGitIntegration
-  toggleResourceManagement(payload: MdToggleResourceManagementPayload): Boolean
-  importDeliveryConfig(application: String!): Boolean
+input MD_RecheckResourcePayload {
+  application: String!
+  resourceId: String!
+}
+
+input MD_MigrationReportIssuePayload {
+  application: ID!
+  issue: String!
+}
+
+input MD_RedeployResourcePayload {
+  application: ID!
+  resource: ID!
+  environment: String!
+}
+
+input MD_DeployResourceImmediatelyPayload {
+  application: ID!
+  taskId: ID!
+  regions: [String!]!
+}
+
+input MD_RollbackToVersionPayload {
+  application: String!
+  environment: String!
+  reference: String!
+  comment: String!
+  toVersion: String!
+  fromVersion: String!
 }
 
 input MD_RestartConstraintEvaluationPayload {
@@ -355,6 +547,7 @@ input MD_RestartConstraintEvaluationPayload {
 input MD_ToggleResourceManagementPayload {
   id: ID!
   isPaused: Boolean!
+  comment: String
 }
 
 input MD_UpdateGitIntegrationPayload {
@@ -402,6 +595,12 @@ input MD_UnpinArtifactVersionPayload {
   reference: String!
 }
 
+input MD_PausePayload {
+  application: String!
+  comment: String
+  cancelTasks: Boolean
+}
+
 type MD_Notification {
   id: String!
   level: MD_EventLevel!
@@ -419,430 +618,12 @@ enum MD_EventLevel {
   SUCCESS, INFO, WARNING, ERROR
 }
 
-enum MD_TaskStatus {
-  NOT_STARTED,
-  RUNNING,
-  PAUSED,
-  SUSPENDED,
-  SUCCEEDED,
-  FAILED_CONTINUE,
-  TERMINAL,
-  CANCELED,
-  REDIRECT,
-  STOPPED,
-  BUFFERED,
-  SKIPPED
-}
-
 input MD_DismissNotificationPayload {
   application: String!
   id: String!
 }
 
-
-########### Deprecated
-
-
-type MdApplication {
-  id: String!
-  name: String!
-  account: String!
-  isPaused: Boolean
-  pausedInfo: MdPausedInfo
-  environments: [MdEnvironment!]!
-  notifications: [MdNotification!]
-  gitIntegration: MdGitIntegration
-  config: MdConfig
-}
-
-type MdGitIntegration {
-  id: String!
-  repository: String
-  branch: String
-  isEnabled: Boolean
-  manifestPath: String
-  link: String
-}
-
-type MdConfig {
-  id: ID!
-  updatedAt: InstantTime
-  rawConfig: String
-  processedConfig: String
-  previewEnvironmentsConfigured: Boolean
-}
-
-type MdEnvironment {
-  id: ID!
-  name: String!
-  state: MdEnvironmentState!
-  isPreview: Boolean
-  isDeleting: Boolean
-  gitMetadata: MdGitMetadata
-  basedOn: String
-}
-
-type MdEnvironmentState {
-  id: String!
-  resources: [MdResource!]
-  artifacts: [MdArtifact!]
-}
-
-type MdPinnedVersion {
-  id: String!
-  name: String!
-  reference: String!
-  version: String!
-  gitMetadata: MdGitMetadata
-  buildNumber: String
-  pinnedAt: InstantTime
-  pinnedBy: String
-  comment: String
-}
-
-type MdPausedInfo {
-  id: String!
-  by: String
-  at: InstantTime
-  comment: String
-}
-
-type MdArtifact {
-  id: String!
-  environment: String!
-  name: String!
-  type: String!
-  reference: String!
-  versions(statuses: [MdArtifactStatusInEnvironment!], versions: [String!], limit: Int): [MdArtifactVersionInEnvironment!]
-  pinnedVersion: MdPinnedVersion
-  latestApprovedVersion: MdArtifactVersionInEnvironment
-  resources: [MdResource!]
-}
-
-type MdArtifactVersionInEnvironment {
-  id: String!
-  version: String!
-  buildNumber: String
-  createdAt: InstantTime
-  deployedAt: InstantTime
-  gitMetadata: MdGitMetadata
-  packageDiff: MdPackageDiff
-  environment: String
-  reference: String!
-  status: MdArtifactStatusInEnvironment
-  lifecycleSteps: [MdLifecycleStep!]
-  constraints: [MdConstraint!]
-  verifications: [MdAction!]
-  postDeploy: [MdAction!]
-  veto: MdVersionVeto
-  isCurrent: Boolean
-}
-
-type MdVersionVeto {
-  vetoedBy: String
-  vetoedAt: InstantTime
-  comment: String
-}
-
-enum MdLifecycleEventScope {
-  PRE_DEPLOYMENT
-}
-
-enum MdLifecycleEventType {
-  BAKE,
-  BUILD
-}
-
-enum MdLifecycleEventStatus {
-  NOT_STARTED,
-  RUNNING,
-  SUCCEEDED,
-  FAILED,
-  ABORTED,
-  UNKNOWN
-}
-
-type MdLifecycleStep {
-  scope: MdLifecycleEventScope
-  type: MdLifecycleEventType!
-  id: String
-  status: MdLifecycleEventStatus!
-  text: String
-  link: String
-  startedAt: InstantTime
-  completedAt: InstantTime
-  artifactVersion: String
-}
-
-type MdGitMetadata {
-  commit: String
-  author: String
-  project: String
-  branch: String
-  repoName: String
-  pullRequest: MdPullRequest
-  commitInfo: MdCommitInfo
-  comparisonLinks: MdComparisonLinks
-}
-
-type MdComparisonLinks {
-  toPreviousVersion: String
-  toCurrentVersion: String
-}
-
-type MdPullRequest {
-  number: String
-  link: String
-}
-
-type MdCommitInfo {
-  sha: String
-  link: String
-  message: String
-}
-
-type MdPackageDiff {
-  added: [MdPackageAndVersion!]
-  removed: [MdPackageAndVersion!]
-  changed: [MdPackageAndVersionChange!]
-}
-
-type MdPackageAndVersion {
-  package: String!
-  version: String!
-}
-
-type MdPackageAndVersionChange {
-  package: String!
-  oldVersion: String!
-  newVersion: String!
-}
-
-enum MdResourceActuationStatus {
-  PROCESSING
-  UP_TO_DATE
-  ERROR
-  WAITING
-  NOT_MANAGED
-  DELETING
-}
-
-type MdResourceActuationState {
-  resourceId: String!
-  status: MdResourceActuationStatus!
-  reason: String
-  event: String
-  tasks: [MdResourceTask!]
-}
-
-type MdResourceTask {
-  id: String!
-  name: String!
-  running: Boolean!
-  summary: MdExecutionSummary
-}
-
-type MdExecutionSummary {
-  id: ID!
-  status: MdTaskStatus!
-  currentStage: MdStageDetail,
-  stages: [MdStageDetail!]
-  deployTargets: [MdDeployTarget!]
-  error: String
-}
-
-type MdDeployTarget {
-  cloudProvider: String
-  location: MdDeployLocation
-  status: MdRolloutTargetStatus
-}
-enum MdRolloutTargetStatus {
-  NOT_STARTED, RUNNING, SUCCEEDED, FAILED
-}
-
-type MdDeployLocation {
-  account: String
-  region: String
-  sublocations: [String!]
-}
-
-type MdStageDetail {
-  id: String
-  type: String
-  name: String
-  startTime: InstantTime
-  endTime: InstantTime
-  status: MdTaskStatus
-  refId: String
-  requisiteStageRefIds: [String!]
-}
-
-type MdResource {
-  id: String!
-  kind: String!
-  moniker: MdMoniker
-  state: MdResourceActuationState
-  artifact: MdArtifact
-  displayName: String
-  location: MdLocation
-  rawDefinition: String
-}
-
-type MdMoniker {
-  app: String
-  stack: String
-  detail: String
-}
-
-type MdLocation {
-  account: String
-  regions: [String!]
-}
-
-enum MdConstraintStatus {
-  BLOCKED
-  PENDING
-  PASS
-  FAIL
-  FORCE_PASS
-}
-
-enum MdArtifactStatusInEnvironment {
-  PENDING,
-  APPROVED,
-  DEPLOYING,
-  CURRENT,
-  PREVIOUS
-  VETOED,
-  SKIPPED
-}
-
-type MdConstraint {
-  type: String!
-  status: MdConstraintStatus!
-  startedAt: InstantTime
-  judgedAt: InstantTime
-  judgedBy: String
-  comment: String
-  attributes: JSON
-}
-
-enum MdActionStatus {
-  NOT_EVALUATED
-  PENDING
-  PASS
-  FAIL
-  FORCE_PASS
-}
-
-enum MdActionType {
-  VERIFICATION
-  POST_DEPLOY
-}
-
-type MdAction {
-  id: String!
-  actionId: String!
-  type: String! # Deprecated
-  status: MdActionStatus!
-  startedAt: InstantTime
-  completedAt: InstantTime
-  link: String
-  actionType: MdActionType!
-}
-
-input MdRestartConstraintEvaluationPayload {
+input MD_InitiateApplicationMigrationPayload {
   application: String!
-  environment: String!
-  type: String!
-  reference: String!
-  version: String!
-}
-
-
-input MdToggleResourceManagementPayload {
-  id: ID!
-  isPaused: Boolean!
-}
-
-input MdUpdateGitIntegrationPayload {
-  application: String!
-  isEnabled: Boolean
-  manifestPath: String
-}
-
-input MdRetryArtifactActionPayload {
-  application: String!
-  environment: String!
-  reference: String!
-  version: String!
-  actionId: String!
-  actionType: MdActionType!
-}
-
-input MdConstraintStatusPayload {
-  application: String!
-  environment: String!
-  type: String!
-  version: String!
-  reference: String!
-  status: MdConstraintStatus!
-}
-
-input MdArtifactVersionActionPayload {
-  application: String!
-  environment: String!
-  reference: String!
-  comment: String!
-  version: String!
-}
-
-input MdMarkArtifactVersionAsGoodPayload {
-  application: String!
-  environment: String!
-  reference: String!
-  version: String!
-}
-
-input MdUnpinArtifactVersionPayload {
-  application: String!
-  environment: String!
-  reference: String!
-}
-
-type MdNotification {
-  id: String!
-  level: MdEventLevel!
-  message: String!
-  triggeredAt: InstantTime
-  triggeredBy: String
-  environment: String
-  link: String
-  isActive: Boolean
-  dismissedAt: InstantTime
-  dismissedBy: String
-}
-
-enum MdEventLevel {
-  SUCCESS, INFO, WARNING, ERROR
-}
-
-enum MdTaskStatus {
-  NOT_STARTED,
-  RUNNING,
-  PAUSED,
-  SUSPENDED,
-  SUCCEEDED,
-  FAILED_CONTINUE,
-  TERMINAL,
-  CANCELED,
-  REDIRECT,
-  STOPPED,
-  BUFFERED,
-  SKIPPED
-}
-
-input MdDismissNotificationPayload {
-  application: String!
-  id: String!
+  deliveryConfig: JSON
 }

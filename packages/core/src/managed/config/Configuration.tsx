@@ -60,9 +60,17 @@ export const Configuration = () => {
     return <UnmanagedMessage />;
   }
 
+  if (data.application?.__typename !== 'MD_Application') {
+    // eslint-disable-next-line no-console
+    console.log('osorianolog unexpected graphql error response');
+    return <UnmanagedMessage />;
+  }
   const gitIntegration = data.application?.gitIntegration;
   const isDebug = getIsDebugMode();
   const config = data.application?.config;
+  if (gitIntegration == null) {
+    return null;
+  }
 
   return (
     <div className="full-width">

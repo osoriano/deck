@@ -108,231 +108,276 @@ fragment baesResourceFields on MD_Resource {
 
 query fetchApplication($appName: String!, $statuses: [MD_ArtifactStatusInEnvironment!]) {
   application: md_application(appName: $appName) {
-    id
-    name
-    config {
+    ... on MD_Application {
       id
-      previewEnvironmentsConfigured
-    }
-    environments {
-      ...baseEnvironmentFields
-      isDeleting
-      state {
+      name
+      config {
         id
-        artifacts {
+        previewEnvironmentsConfigured
+      }
+      environments {
+        ...baseEnvironmentFields
+        isDeleting
+        state {
           id
-          name
-          environment
-          type
-          reference
-          versions(statuses: $statuses) {
-            ...detailedVersionFields
+          artifacts {
+            id
+            name
+            environment
+            type
+            reference
+            versions(statuses: $statuses) {
+              ...detailedVersionFields
+            }
+            ...artifactPinnedVersionFields
+            resources {
+              ...baesResourceFields
+            }
           }
-          ...artifactPinnedVersionFields
           resources {
             ...baesResourceFields
           }
         }
-        resources {
-          ...baesResourceFields
-        }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchCurrentVersion($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    environments {
+    ... on MD_Application {
       id
       name
-      state {
-        artifacts {
-          id
-          name
-          reference
-          environment
-          versions(statuses: [CURRENT]) {
+      environments {
+        id
+        name
+        state {
+          artifacts {
             id
-            version
-            buildNumber
-            createdAt
-            gitMetadata {
-              commit
-              commitInfo {
-                sha
-                message
+            name
+            reference
+            environment
+            versions(statuses: [CURRENT]) {
+              id
+              version
+              buildNumber
+              createdAt
+              gitMetadata {
+                commit
+                commitInfo {
+                  sha
+                  message
+                }
               }
             }
           }
         }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchVersionsHistory($appName: String!, $limit: Int) {
   application: md_application(appName: $appName) {
-    id
-    name
-    environments {
-      ...baseEnvironmentFields
-      state {
-        id
-        artifacts {
+    ... on MD_Application {
+      id
+      name
+      environments {
+        ...baseEnvironmentFields
+        state {
           id
-          name
-          environment
-          type
-          reference
-          versions(limit: $limit) {
+          artifacts {
             id
-            buildNumber
-            version
-            createdAt
-            status
-            isCurrent
-            gitMetadata {
-              commit
-              author
-              branch
-              commitInfo {
-                sha
-                link
-                message
-              }
-              pullRequest {
-                number
-                link
+            name
+            environment
+            type
+            reference
+            versions(limit: $limit) {
+              id
+              buildNumber
+              version
+              createdAt
+              status
+              isCurrent
+              gitMetadata {
+                commit
+                author
+                branch
+                commitInfo {
+                  sha
+                  link
+                  message
+                }
+                pullRequest {
+                  number
+                  link
+                }
               }
             }
+            ...artifactPinnedVersionFields
           }
-          ...artifactPinnedVersionFields
         }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchPinnedVersions($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    account
-    environments {
+    ... on MD_Application {
       id
       name
-      state {
+      account
+      environments {
         id
-        artifacts {
+        name
+        state {
           id
-          name
-          environment
-          type
-          reference
-          ...artifactPinnedVersionFields
+          artifacts {
+            id
+            name
+            environment
+            type
+            reference
+            ...artifactPinnedVersionFields
+          }
         }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchVersion($appName: String!, $versions: [String!]) {
   application: md_application(appName: $appName) {
-    id
-    name
-    account
-    environments {
+    ... on MD_Application {
       id
       name
-      state {
+      account
+      environments {
         id
-        artifacts {
+        name
+        state {
           id
-          name
-          environment
-          type
-          reference
-          versions(versions: $versions) {
-            ...detailedVersionFields
+          artifacts {
+            id
+            name
+            environment
+            type
+            reference
+            versions(versions: $versions) {
+              ...detailedVersionFields
+            }
           }
         }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchResourceStatus($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    environments {
+    ... on MD_Application {
       id
       name
-      state {
+      environments {
         id
-        resources {
+        name
+        state {
           id
-          kind
-          state {
-            status
-            reason
-            event
-            tasks {
-              id
-              name
+          resources {
+            id
+            kind
+            state {
+              status
+              reason
+              event
+              tasks {
+                id
+                name
+              }
             }
           }
         }
       }
+    }
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchNotifications($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    notifications {
+    ... on MD_Application {
       id
-      level
+      name
+      notifications {
+        id
+        level
+        message
+        triggeredAt
+        link
+        id
+      }
+    }
+    ... on MD_Error {
       message
-      triggeredAt
-      link
-      id
     }
   }
 }
 
 query fetchApplicationManagementData($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    isPaused
-    config {
+    ... on MD_Application {
       id
-      updatedAt
-      rawConfig
-      processedConfig
+      name
+      isPaused
+      config {
+        id
+        updatedAt
+        rawConfig
+        processedConfig
+      }
+      gitIntegration {
+        id
+        repository
+        branch
+        isEnabled
+        link
+        manifestPath
+      }
     }
-    gitIntegration {
-      id
-      repository
-      branch
-      isEnabled
-      link
-      manifestPath
+    ... on MD_Error {
+      message
     }
   }
 }
 
 query fetchApplicationManagementStatus($appName: String!) {
   application: md_application(appName: $appName) {
-    id
-    name
-    isPaused
+    ... on MD_Application {
+      id
+      name
+      isPaused
+    }
+    ... on MD_Error {
+      message
+    }
   }
 }
 
@@ -381,7 +426,7 @@ mutation ImportDeliveryConfig($application: String!) {
   md_importDeliveryConfig(application: $application)
 }
 
-mutation ToggleResourceManagement($payload: MD_ToggleResourceManagementPayload) {
+mutation ToggleResourceManagement($payload: MD_ToggleResourceManagementPayload!) {
   md_toggleResourceManagement(payload: $payload)
 }
 

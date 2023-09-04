@@ -5,7 +5,7 @@ import { ResourceTask } from './ResourceTask';
 import { ConfirmationModalService } from '../../confirmationModal/confirmationModal.service';
 import type { IEnvironmentItemProps } from '../environmentBaseElements/EnvironmentItem';
 import { EnvironmentItem } from '../environmentBaseElements/EnvironmentItem';
-import type { MdResourceActuationState } from '../graphql/graphql-sdk';
+import type { Md_ResourceActuationState } from '../graphql/graphql-sdk';
 import {
   FetchResourceStatusDocument,
   useFetchResourceStatusQuery,
@@ -25,7 +25,7 @@ import { Spinner } from '../../widgets';
 import './Resource.less';
 
 const statusUtils: {
-  [key in Exclude<MdResourceActuationState['status'], 'UP_TO_DATE'>]: {
+  [key in Exclude<Md_ResourceActuationState['status'], 'UP_TO_DATE'>]: {
     color?: string;
     icon: string;
     defaultReason: string;
@@ -56,11 +56,13 @@ const Status = ({ appName, environmentName, resourceId, regions, account }: ISta
     variables: { payload: { id: resourceId, isPaused: false } },
     refetchQueries: [{ query: FetchResourceStatusDocument, variables: { appName } }],
   });
-  const state = resourceStatuses?.application?.environments
-    .find((env) => env.name === environmentName)
-    ?.state.resources?.find((resource) => resource.id === resourceId)?.state;
+  const state =
+    resourceStatuses?.application?.__typename === 'MD_Application' &&
+    resourceStatuses?.application?.environments
+      .find((env) => env.name === environmentName)
+      ?.state.resources?.find((resource) => resource.id === resourceId)?.state;
 
-  if (error || (!loading && !state)) {
+  if (error || (!loading && !state) || resourceStatuses?.application?.__typename !== 'MD_Application') {
     return (
       <div className="resource-status">
         <Icon name="mdUnknown" size="14px" color="status-warning" />

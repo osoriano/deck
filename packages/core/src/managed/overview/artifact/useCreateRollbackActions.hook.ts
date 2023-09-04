@@ -9,9 +9,11 @@ import { getRelativeAgeToCurrent } from './utils';
 const useGetCurrentVersion = (environment: string, reference: string) => {
   const application = useApplicationContextSafe();
   const { data: currentVersionData } = useFetchCurrentVersionQuery({ variables: { appName: application.name } });
-  const currentVersion = currentVersionData?.application?.environments
-    .find((e) => e.name === environment)
-    ?.state.artifacts?.find((artifact) => artifact.reference === reference)?.versions?.[0];
+  const currentVersion =
+    currentVersionData?.application?.__typename === 'MD_Application' &&
+    currentVersionData.application.environments
+      .find((e) => e.name === environment)
+      ?.state.artifacts?.find((artifact) => artifact.reference === reference)?.versions?.[0];
   return currentVersion;
 };
 

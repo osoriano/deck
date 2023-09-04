@@ -20,6 +20,7 @@ const statusToText: {
   PASS: 'passed',
   PENDING: 'in progress',
   NOT_EVALUATED: 'has not started yet',
+  SKIPPED: 'has been skipped',
 };
 
 export interface ITaskArtifactVersionProps {

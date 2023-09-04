@@ -125,8 +125,13 @@ export const VersionsHistory = () => {
     return <ApplicationQueryError hasApplicationData={Boolean(data?.application)} error={error} />;
   }
 
-  const groupedVersions = groupVersionsByShaOrBuild(data?.application?.environments || [], params);
-  const pinnedVersions = getPinnedVersions(data?.application?.environments || []);
+  const groupedVersions = groupVersionsByShaOrBuild(
+    (data?.application?.__typename === 'MD_Application' && data.application.environments) || [],
+    params,
+  );
+  const pinnedVersions = getPinnedVersions(
+    (data?.application?.__typename === 'MD_Application' && data.application.environments) || [],
+  );
 
   return (
     <main className="VersionsHistory">

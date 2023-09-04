@@ -71,6 +71,7 @@ const ManagedResourceConfigInternal = ({ application }: IManagedResourceConfigPr
   }
 
   if (!data) return null;
+  if (data.application?.__typename !== 'MD_Application') return null;
 
   const paused = Boolean(data?.application?.isPaused);
   const iconClass = paused ? 'fa-play' : 'fa-pause';

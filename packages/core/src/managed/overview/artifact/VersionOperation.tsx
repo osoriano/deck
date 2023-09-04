@@ -6,7 +6,7 @@ import type { QueryArtifactVersionTaskStatus, QueryConstraint } from '../types';
 import './VersionOperationIcon.less';
 
 type AllStatuses = QueryConstraint['status'] | QueryArtifactVersionTaskStatus;
-export const ACTION_DISPLAY_NAMES = ['passed', 'overridden', 'pending', 'failed'] as const;
+export const ACTION_DISPLAY_NAMES = ['passed', 'overridden', 'pending', 'failed', 'skipped'] as const;
 export type ActionDisplayName = typeof ACTION_DISPLAY_NAMES[number];
 
 const DEFAULT_ICON_CLASSNAME = 'far fa-hourglass md-icon-pending';
@@ -23,6 +23,7 @@ const actionStatusUtilsInternal: ActionStatusUtils = {
   PENDING: { displayName: 'pending' },
   NOT_EVALUATED: { displayName: 'pending' },
   BLOCKED: { displayName: 'pending' },
+  SKIPPED: { displayName: 'skipped' },
 };
 
 export const getActionStatusData = (status: AllStatuses): ActionStatusUtils[keyof ActionStatusUtils] | undefined => {

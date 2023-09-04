@@ -29,9 +29,18 @@ export interface Md_Action {
   actionType: Md_ActionType;
 }
 
-export type Md_ActionStatus = 'NOT_EVALUATED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS';
+export type Md_ActionStatus = 'NOT_EVALUATED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS' | 'SKIPPED';
 
 export type Md_ActionType = 'VERIFICATION' | 'POST_DEPLOY';
+
+export interface Md_ActuationPlan {
+  __typename?: 'MD_ActuationPlan';
+  id: Scalars['ID'];
+  status?: Maybe<Md_ActuationPlanStatus>;
+  environmentPlans?: Maybe<Array<Md_EnvironmentPlan>>;
+}
+
+export type Md_ActuationPlanStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
 export interface Md_Application {
   __typename?: 'MD_Application';
@@ -44,7 +53,22 @@ export interface Md_Application {
   notifications?: Maybe<Array<Md_Notification>>;
   gitIntegration?: Maybe<Md_GitIntegration>;
   config?: Maybe<Md_Config>;
+  versionOnUnpinning?: Maybe<Md_ArtifactVersionInEnvironment>;
+  versionOnRollback?: Maybe<Md_ArtifactVersionInEnvironment>;
+  userPermissions?: Maybe<Md_UserPermissions>;
 }
+
+export interface Md_ApplicationVersionOnUnpinningArgs {
+  reference: Scalars['String'];
+  environment: Scalars['String'];
+}
+
+export interface Md_ApplicationVersionOnRollbackArgs {
+  reference: Scalars['String'];
+  environment: Scalars['String'];
+}
+
+export type Md_ApplicationResult = Md_Application | Md_Error;
 
 export interface Md_Artifact {
   __typename?: 'MD_Artifact';
@@ -55,7 +79,6 @@ export interface Md_Artifact {
   reference: Scalars['String'];
   versions?: Maybe<Array<Md_ArtifactVersionInEnvironment>>;
   pinnedVersion?: Maybe<Md_PinnedVersion>;
-  latestApprovedVersion?: Maybe<Md_ArtifactVersionInEnvironment>;
   resources?: Maybe<Array<Md_Resource>>;
 }
 
@@ -63,6 +86,14 @@ export interface Md_ArtifactVersionsArgs {
   statuses?: Maybe<Array<Md_ArtifactStatusInEnvironment>>;
   versions?: Maybe<Array<Scalars['String']>>;
   limit?: Maybe<Scalars['Int']>;
+}
+
+export interface Md_ArtifactSpec {
+  __typename?: 'MD_ArtifactSpec';
+  id: Scalars['ID'];
+  type?: Maybe<Scalars['String']>;
+  spec?: Maybe<Scalars['JSON']>;
+  warning?: Maybe<Md_Warning_Type>;
 }
 
 export type Md_ArtifactStatusInEnvironment =
@@ -89,6 +120,7 @@ export interface Md_ArtifactVersionInEnvironment {
   buildNumber?: Maybe<Scalars['String']>;
   createdAt?: Maybe<Scalars['InstantTime']>;
   deployedAt?: Maybe<Scalars['InstantTime']>;
+  replacedAt?: Maybe<Scalars['InstantTime']>;
   gitMetadata?: Maybe<Md_GitMetadata>;
   packageDiff?: Maybe<Md_PackageDiff>;
   environment?: Maybe<Scalars['String']>;
@@ -122,6 +154,7 @@ export interface Md_Config {
   rawConfig?: Maybe<Scalars['String']>;
   processedConfig?: Maybe<Scalars['String']>;
   previewEnvironmentsConfigured?: Maybe<Scalars['Boolean']>;
+  isMigrating?: Maybe<Scalars['Boolean']>;
 }
 
 export interface Md_Constraint {
@@ -135,7 +168,14 @@ export interface Md_Constraint {
   attributes?: Maybe<Scalars['JSON']>;
 }
 
-export type Md_ConstraintStatus = 'BLOCKED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS';
+export interface Md_ConstraintSpec {
+  __typename?: 'MD_ConstraintSpec';
+  id: Scalars['ID'];
+  type?: Maybe<Scalars['String']>;
+  spec?: Maybe<Scalars['JSON']>;
+}
+
+export type Md_ConstraintStatus = 'BLOCKED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS' | 'SKIPPED';
 
 export interface Md_ConstraintStatusPayload {
   application: Scalars['String'];
@@ -146,11 +186,23 @@ export interface Md_ConstraintStatusPayload {
   status: Md_ConstraintStatus;
 }
 
+export type Md_ConstraintType = 'VERIFICATIONS' | 'DEPENDS_ON' | 'MANUAL_JUDGMENT' | 'JENKINS';
+
+export interface Md_DeliveryConfigValidationPayload {
+  deliveryConfig: Scalars['JSON'];
+}
+
 export interface Md_DeployLocation {
   __typename?: 'MD_DeployLocation';
   account?: Maybe<Scalars['String']>;
   region?: Maybe<Scalars['String']>;
   sublocations?: Maybe<Array<Scalars['String']>>;
+}
+
+export interface Md_DeployResourceImmediatelyPayload {
+  application: Scalars['ID'];
+  taskId: Scalars['ID'];
+  regions: Array<Scalars['String']>;
 }
 
 export interface Md_DeployTarget {
@@ -176,6 +228,13 @@ export interface Md_Environment {
   basedOn?: Maybe<Scalars['String']>;
 }
 
+export interface Md_EnvironmentPlan {
+  __typename?: 'MD_EnvironmentPlan';
+  id: Scalars['ID'];
+  environment: Scalars['String'];
+  resourcePlans?: Maybe<Array<Md_ResourcePlan>>;
+}
+
 export interface Md_EnvironmentState {
   __typename?: 'MD_EnvironmentState';
   id: Scalars['String'];
@@ -183,11 +242,18 @@ export interface Md_EnvironmentState {
   artifacts?: Maybe<Array<Md_Artifact>>;
 }
 
+export interface Md_Error {
+  __typename?: 'MD_Error';
+  id: Scalars['ID'];
+  message?: Maybe<Scalars['String']>;
+}
+
 export type Md_EventLevel = 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR';
 
 export interface Md_ExecutionSummary {
   __typename?: 'MD_ExecutionSummary';
-  status: Md_TaskStatus;
+  id: Scalars['ID'];
+  status: Md_RolloutTargetStatus;
   currentStage?: Maybe<Md_StageDetail>;
   stages?: Maybe<Array<Md_StageDetail>>;
   deployTargets?: Maybe<Array<Md_DeployTarget>>;
@@ -214,6 +280,17 @@ export interface Md_GitMetadata {
   pullRequest?: Maybe<Md_PullRequest>;
   commitInfo?: Maybe<Md_CommitInfo>;
   comparisonLinks?: Maybe<Md_ComparisonLinks>;
+}
+
+export interface Md_InitiateApplicationMigrationPayload {
+  application: Scalars['String'];
+  deliveryConfig?: Maybe<Scalars['JSON']>;
+}
+
+export interface Md_JsonSchema {
+  __typename?: 'MD_JsonSchema';
+  id: Scalars['String'];
+  schema: Scalars['JSON'];
 }
 
 export type Md_LifecycleEventScope = 'PRE_DEPLOYMENT';
@@ -248,6 +325,27 @@ export interface Md_MarkArtifactVersionAsGoodPayload {
   version: Scalars['String'];
 }
 
+export interface Md_Migration {
+  __typename?: 'MD_Migration';
+  id: Scalars['ID'];
+  status?: Maybe<Md_MigrationStatus>;
+  deliveryConfig?: Maybe<Scalars['JSON']>;
+  /** @deprecated Field no longer supported */
+  userGeneratedDeliveryConfig?: Maybe<Scalars['JSON']>;
+  userGeneratedConfig?: Maybe<Md_UserGeneratedConfig>;
+  prLink?: Maybe<Scalars['String']>;
+  actuationPlan?: Maybe<Md_ActuationPlan>;
+  warnings?: Maybe<Array<Md_Warning>>;
+  pipelines?: Maybe<Array<Md_Pipeline>>;
+}
+
+export interface Md_MigrationReportIssuePayload {
+  application: Scalars['ID'];
+  issue: Scalars['String'];
+}
+
+export type Md_MigrationStatus = 'NOT_READY' | 'READY_TO_START' | 'PR_CREATED' | 'BLOCKED' | 'COMPLETED';
+
 export interface Md_Moniker {
   __typename?: 'MD_Moniker';
   app?: Maybe<Scalars['String']>;
@@ -271,13 +369,13 @@ export interface Md_Notification {
 
 export interface Md_PackageAndVersion {
   __typename?: 'MD_PackageAndVersion';
-  package: Scalars['String'];
+  packageName: Scalars['String'];
   version: Scalars['String'];
 }
 
 export interface Md_PackageAndVersionChange {
   __typename?: 'MD_PackageAndVersionChange';
-  package: Scalars['String'];
+  packageName: Scalars['String'];
   oldVersion: Scalars['String'];
   newVersion: Scalars['String'];
 }
@@ -289,6 +387,12 @@ export interface Md_PackageDiff {
   changed?: Maybe<Array<Md_PackageAndVersionChange>>;
 }
 
+export interface Md_PausePayload {
+  application: Scalars['String'];
+  comment?: Maybe<Scalars['String']>;
+  cancelTasks?: Maybe<Scalars['Boolean']>;
+}
+
 export interface Md_PausedInfo {
   __typename?: 'MD_PausedInfo';
   id: Scalars['String'];
@@ -296,6 +400,8 @@ export interface Md_PausedInfo {
   at?: Maybe<Scalars['InstantTime']>;
   comment?: Maybe<Scalars['String']>;
 }
+
+export type Md_PinType = 'ROLLBACK' | 'LOCK';
 
 export interface Md_PinnedVersion {
   __typename?: 'MD_PinnedVersion';
@@ -308,12 +414,39 @@ export interface Md_PinnedVersion {
   pinnedAt?: Maybe<Scalars['InstantTime']>;
   pinnedBy?: Maybe<Scalars['String']>;
   comment?: Maybe<Scalars['String']>;
+  type?: Maybe<Md_PinType>;
 }
+
+export interface Md_Pipeline {
+  __typename?: 'MD_Pipeline';
+  id: Scalars['ID'];
+  name?: Maybe<Scalars['String']>;
+  shape?: Maybe<Scalars['String']>;
+  status?: Maybe<Md_PipelineStatus>;
+  deployablePipeline?: Maybe<Scalars['Boolean']>;
+  reason?: Maybe<Scalars['String']>;
+  resources?: Maybe<Array<Md_ResourceSpec>>;
+  constraints?: Maybe<Array<Md_ConstraintSpec>>;
+  artifacts?: Maybe<Array<Md_ArtifactSpec>>;
+}
+
+export type Md_PipelineStatus = 'PROCESSED' | 'EXPORTED' | 'NOT_SUPPORTED';
 
 export interface Md_PullRequest {
   __typename?: 'MD_PullRequest';
   number?: Maybe<Scalars['String']>;
   link?: Maybe<Scalars['String']>;
+}
+
+export interface Md_RecheckResourcePayload {
+  application: Scalars['String'];
+  resourceId: Scalars['String'];
+}
+
+export interface Md_RedeployResourcePayload {
+  application: Scalars['ID'];
+  resource: Scalars['ID'];
+  environment: Scalars['String'];
 }
 
 export interface Md_Resource {
@@ -326,24 +459,44 @@ export interface Md_Resource {
   displayName?: Maybe<Scalars['String']>;
   location?: Maybe<Md_Location>;
   rawDefinition?: Maybe<Scalars['String']>;
+  isDeployable?: Maybe<Scalars['Boolean']>;
 }
+
+export type Md_ResourceAction = 'NONE' | 'CREATE' | 'UPDATE';
 
 export interface Md_ResourceActuationState {
   __typename?: 'MD_ResourceActuationState';
-  resourceId: Scalars['String'];
+  resourceId: Scalars['ID'];
   status: Md_ResourceActuationStatus;
   reason?: Maybe<Scalars['String']>;
   event?: Maybe<Scalars['String']>;
   tasks?: Maybe<Array<Md_ResourceTask>>;
+  errors?: Maybe<Array<Scalars['String']>>;
+  pausedInfo?: Maybe<Md_PausedInfo>;
 }
 
 export type Md_ResourceActuationStatus = 'PROCESSING' | 'UP_TO_DATE' | 'ERROR' | 'WAITING' | 'NOT_MANAGED' | 'DELETING';
+
+export interface Md_ResourcePlan {
+  __typename?: 'MD_ResourcePlan';
+  id: Scalars['ID'];
+  action: Md_ResourceAction;
+  diff?: Maybe<Scalars['JSON']>;
+}
+
+export interface Md_ResourceSpec {
+  __typename?: 'MD_ResourceSpec';
+  id: Scalars['ID'];
+  kind?: Maybe<Scalars['String']>;
+  spec?: Maybe<Scalars['JSON']>;
+}
 
 export interface Md_ResourceTask {
   __typename?: 'MD_ResourceTask';
   id: Scalars['String'];
   name: Scalars['String'];
-  running: Scalars['Boolean'];
+  fullName?: Maybe<Scalars['String']>;
+  running?: Maybe<Scalars['Boolean']>;
   summary?: Maybe<Md_ExecutionSummary>;
 }
 
@@ -364,6 +517,15 @@ export interface Md_RetryArtifactActionPayload {
   actionType: Md_ActionType;
 }
 
+export interface Md_RollbackToVersionPayload {
+  application: Scalars['String'];
+  environment: Scalars['String'];
+  reference: Scalars['String'];
+  comment: Scalars['String'];
+  toVersion: Scalars['String'];
+  fromVersion: Scalars['String'];
+}
+
 export type Md_RolloutTargetStatus = 'NOT_STARTED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
 
 export interface Md_StageDetail {
@@ -373,28 +535,15 @@ export interface Md_StageDetail {
   name?: Maybe<Scalars['String']>;
   startTime?: Maybe<Scalars['InstantTime']>;
   endTime?: Maybe<Scalars['InstantTime']>;
-  status?: Maybe<Md_TaskStatus>;
+  status?: Maybe<Md_RolloutTargetStatus>;
   refId?: Maybe<Scalars['String']>;
   requisiteStageRefIds?: Maybe<Array<Scalars['String']>>;
 }
 
-export type Md_TaskStatus =
-  | 'NOT_STARTED'
-  | 'RUNNING'
-  | 'PAUSED'
-  | 'SUSPENDED'
-  | 'SUCCEEDED'
-  | 'FAILED_CONTINUE'
-  | 'TERMINAL'
-  | 'CANCELED'
-  | 'REDIRECT'
-  | 'STOPPED'
-  | 'BUFFERED'
-  | 'SKIPPED';
-
 export interface Md_ToggleResourceManagementPayload {
   id: Scalars['ID'];
   isPaused: Scalars['Boolean'];
+  comment?: Maybe<Scalars['String']>;
 }
 
 export interface Md_UnpinArtifactVersionPayload {
@@ -409,6 +558,27 @@ export interface Md_UpdateGitIntegrationPayload {
   manifestPath?: Maybe<Scalars['String']>;
 }
 
+export interface Md_UserGeneratedConfig {
+  __typename?: 'MD_UserGeneratedConfig';
+  id: Scalars['ID'];
+  deliveryConfig: Scalars['JSON'];
+  updatedAt?: Maybe<Scalars['InstantTime']>;
+  updatedBy?: Maybe<Scalars['String']>;
+}
+
+export interface Md_UserPermissions {
+  __typename?: 'MD_UserPermissions';
+  id: Scalars['ID'];
+  writeAccess?: Maybe<Scalars['Boolean']>;
+  error?: Maybe<Scalars['String']>;
+}
+
+export interface Md_ValidateResult {
+  __typename?: 'MD_ValidateResult';
+  success: Scalars['Boolean'];
+  errors?: Maybe<Array<Scalars['String']>>;
+}
+
 export interface Md_VersionVeto {
   __typename?: 'MD_VersionVeto';
   vetoedBy?: Maybe<Scalars['String']>;
@@ -416,411 +586,22 @@ export interface Md_VersionVeto {
   comment?: Maybe<Scalars['String']>;
 }
 
-export interface MdAction {
-  __typename?: 'MdAction';
-  id: Scalars['String'];
-  actionId: Scalars['String'];
-  type: Scalars['String'];
-  status: MdActionStatus;
-  startedAt?: Maybe<Scalars['InstantTime']>;
-  completedAt?: Maybe<Scalars['InstantTime']>;
-  link?: Maybe<Scalars['String']>;
-  actionType: MdActionType;
-}
-
-export type MdActionStatus = 'NOT_EVALUATED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS';
-
-export type MdActionType = 'VERIFICATION' | 'POST_DEPLOY';
-
-export interface MdApplication {
-  __typename?: 'MdApplication';
-  id: Scalars['String'];
-  name: Scalars['String'];
-  account: Scalars['String'];
-  isPaused?: Maybe<Scalars['Boolean']>;
-  pausedInfo?: Maybe<MdPausedInfo>;
-  environments: Array<MdEnvironment>;
-  notifications?: Maybe<Array<MdNotification>>;
-  gitIntegration?: Maybe<MdGitIntegration>;
-  config?: Maybe<MdConfig>;
-}
-
-export interface MdArtifact {
-  __typename?: 'MdArtifact';
-  id: Scalars['String'];
-  environment: Scalars['String'];
-  name: Scalars['String'];
-  type: Scalars['String'];
-  reference: Scalars['String'];
-  versions?: Maybe<Array<MdArtifactVersionInEnvironment>>;
-  pinnedVersion?: Maybe<MdPinnedVersion>;
-  latestApprovedVersion?: Maybe<MdArtifactVersionInEnvironment>;
-  resources?: Maybe<Array<MdResource>>;
-}
-
-export interface MdArtifactVersionsArgs {
-  statuses?: Maybe<Array<MdArtifactStatusInEnvironment>>;
-  versions?: Maybe<Array<Scalars['String']>>;
-  limit?: Maybe<Scalars['Int']>;
-}
-
-export type MdArtifactStatusInEnvironment =
-  | 'PENDING'
-  | 'APPROVED'
-  | 'DEPLOYING'
-  | 'CURRENT'
-  | 'PREVIOUS'
-  | 'VETOED'
-  | 'SKIPPED';
-
-export interface MdArtifactVersionActionPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  reference: Scalars['String'];
-  comment: Scalars['String'];
-  version: Scalars['String'];
-}
-
-export interface MdArtifactVersionInEnvironment {
-  __typename?: 'MdArtifactVersionInEnvironment';
-  id: Scalars['String'];
-  version: Scalars['String'];
-  buildNumber?: Maybe<Scalars['String']>;
-  createdAt?: Maybe<Scalars['InstantTime']>;
-  deployedAt?: Maybe<Scalars['InstantTime']>;
-  gitMetadata?: Maybe<MdGitMetadata>;
-  packageDiff?: Maybe<MdPackageDiff>;
-  environment?: Maybe<Scalars['String']>;
-  reference: Scalars['String'];
-  status?: Maybe<MdArtifactStatusInEnvironment>;
-  lifecycleSteps?: Maybe<Array<MdLifecycleStep>>;
-  constraints?: Maybe<Array<MdConstraint>>;
-  verifications?: Maybe<Array<MdAction>>;
-  postDeploy?: Maybe<Array<MdAction>>;
-  veto?: Maybe<MdVersionVeto>;
-  isCurrent?: Maybe<Scalars['Boolean']>;
-}
-
-export interface MdCommitInfo {
-  __typename?: 'MdCommitInfo';
-  sha?: Maybe<Scalars['String']>;
-  link?: Maybe<Scalars['String']>;
+export interface Md_Warning {
+  __typename?: 'MD_Warning';
+  id: Scalars['ID'];
+  type: Md_Warning_Type;
   message?: Maybe<Scalars['String']>;
 }
 
-export interface MdComparisonLinks {
-  __typename?: 'MdComparisonLinks';
-  toPreviousVersion?: Maybe<Scalars['String']>;
-  toCurrentVersion?: Maybe<Scalars['String']>;
-}
-
-export interface MdConfig {
-  __typename?: 'MdConfig';
-  id: Scalars['ID'];
-  updatedAt?: Maybe<Scalars['InstantTime']>;
-  rawConfig?: Maybe<Scalars['String']>;
-  processedConfig?: Maybe<Scalars['String']>;
-  previewEnvironmentsConfigured?: Maybe<Scalars['Boolean']>;
-}
-
-export interface MdConstraint {
-  __typename?: 'MdConstraint';
-  type: Scalars['String'];
-  status: MdConstraintStatus;
-  startedAt?: Maybe<Scalars['InstantTime']>;
-  judgedAt?: Maybe<Scalars['InstantTime']>;
-  judgedBy?: Maybe<Scalars['String']>;
-  comment?: Maybe<Scalars['String']>;
-  attributes?: Maybe<Scalars['JSON']>;
-}
-
-export type MdConstraintStatus = 'BLOCKED' | 'PENDING' | 'PASS' | 'FAIL' | 'FORCE_PASS';
-
-export interface MdConstraintStatusPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  type: Scalars['String'];
-  version: Scalars['String'];
-  reference: Scalars['String'];
-  status: MdConstraintStatus;
-}
-
-export interface MdDeployLocation {
-  __typename?: 'MdDeployLocation';
-  account?: Maybe<Scalars['String']>;
-  region?: Maybe<Scalars['String']>;
-  sublocations?: Maybe<Array<Scalars['String']>>;
-}
-
-export interface MdDeployTarget {
-  __typename?: 'MdDeployTarget';
-  cloudProvider?: Maybe<Scalars['String']>;
-  location?: Maybe<MdDeployLocation>;
-  status?: Maybe<MdRolloutTargetStatus>;
-}
-
-export interface MdDismissNotificationPayload {
-  application: Scalars['String'];
-  id: Scalars['String'];
-}
-
-export interface MdEnvironment {
-  __typename?: 'MdEnvironment';
-  id: Scalars['ID'];
-  name: Scalars['String'];
-  state: MdEnvironmentState;
-  isPreview?: Maybe<Scalars['Boolean']>;
-  isDeleting?: Maybe<Scalars['Boolean']>;
-  gitMetadata?: Maybe<MdGitMetadata>;
-  basedOn?: Maybe<Scalars['String']>;
-}
-
-export interface MdEnvironmentState {
-  __typename?: 'MdEnvironmentState';
-  id: Scalars['String'];
-  resources?: Maybe<Array<MdResource>>;
-  artifacts?: Maybe<Array<MdArtifact>>;
-}
-
-export type MdEventLevel = 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR';
-
-export interface MdExecutionSummary {
-  __typename?: 'MdExecutionSummary';
-  id: Scalars['ID'];
-  status: MdTaskStatus;
-  currentStage?: Maybe<MdStageDetail>;
-  stages?: Maybe<Array<MdStageDetail>>;
-  deployTargets?: Maybe<Array<MdDeployTarget>>;
-  error?: Maybe<Scalars['String']>;
-}
-
-export interface MdGitIntegration {
-  __typename?: 'MdGitIntegration';
-  id: Scalars['String'];
-  repository?: Maybe<Scalars['String']>;
-  branch?: Maybe<Scalars['String']>;
-  isEnabled?: Maybe<Scalars['Boolean']>;
-  manifestPath?: Maybe<Scalars['String']>;
-  link?: Maybe<Scalars['String']>;
-}
-
-export interface MdGitMetadata {
-  __typename?: 'MdGitMetadata';
-  commit?: Maybe<Scalars['String']>;
-  author?: Maybe<Scalars['String']>;
-  project?: Maybe<Scalars['String']>;
-  branch?: Maybe<Scalars['String']>;
-  repoName?: Maybe<Scalars['String']>;
-  pullRequest?: Maybe<MdPullRequest>;
-  commitInfo?: Maybe<MdCommitInfo>;
-  comparisonLinks?: Maybe<MdComparisonLinks>;
-}
-
-export type MdLifecycleEventScope = 'PRE_DEPLOYMENT';
-
-export type MdLifecycleEventStatus = 'NOT_STARTED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'ABORTED' | 'UNKNOWN';
-
-export type MdLifecycleEventType = 'BAKE' | 'BUILD';
-
-export interface MdLifecycleStep {
-  __typename?: 'MdLifecycleStep';
-  scope?: Maybe<MdLifecycleEventScope>;
-  type: MdLifecycleEventType;
-  id?: Maybe<Scalars['String']>;
-  status: MdLifecycleEventStatus;
-  text?: Maybe<Scalars['String']>;
-  link?: Maybe<Scalars['String']>;
-  startedAt?: Maybe<Scalars['InstantTime']>;
-  completedAt?: Maybe<Scalars['InstantTime']>;
-  artifactVersion?: Maybe<Scalars['String']>;
-}
-
-export interface MdLocation {
-  __typename?: 'MdLocation';
-  account?: Maybe<Scalars['String']>;
-  regions?: Maybe<Array<Scalars['String']>>;
-}
-
-export interface MdMarkArtifactVersionAsGoodPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  reference: Scalars['String'];
-  version: Scalars['String'];
-}
-
-export interface MdMoniker {
-  __typename?: 'MdMoniker';
-  app?: Maybe<Scalars['String']>;
-  stack?: Maybe<Scalars['String']>;
-  detail?: Maybe<Scalars['String']>;
-}
-
-export interface MdNotification {
-  __typename?: 'MdNotification';
-  id: Scalars['String'];
-  level: MdEventLevel;
-  message: Scalars['String'];
-  triggeredAt?: Maybe<Scalars['InstantTime']>;
-  triggeredBy?: Maybe<Scalars['String']>;
-  environment?: Maybe<Scalars['String']>;
-  link?: Maybe<Scalars['String']>;
-  isActive?: Maybe<Scalars['Boolean']>;
-  dismissedAt?: Maybe<Scalars['InstantTime']>;
-  dismissedBy?: Maybe<Scalars['String']>;
-}
-
-export interface MdPackageAndVersion {
-  __typename?: 'MdPackageAndVersion';
-  package: Scalars['String'];
-  version: Scalars['String'];
-}
-
-export interface MdPackageAndVersionChange {
-  __typename?: 'MdPackageAndVersionChange';
-  package: Scalars['String'];
-  oldVersion: Scalars['String'];
-  newVersion: Scalars['String'];
-}
-
-export interface MdPackageDiff {
-  __typename?: 'MdPackageDiff';
-  added?: Maybe<Array<MdPackageAndVersion>>;
-  removed?: Maybe<Array<MdPackageAndVersion>>;
-  changed?: Maybe<Array<MdPackageAndVersionChange>>;
-}
-
-export interface MdPausedInfo {
-  __typename?: 'MdPausedInfo';
-  id: Scalars['String'];
-  by?: Maybe<Scalars['String']>;
-  at?: Maybe<Scalars['InstantTime']>;
-  comment?: Maybe<Scalars['String']>;
-}
-
-export interface MdPinnedVersion {
-  __typename?: 'MdPinnedVersion';
-  id: Scalars['String'];
-  name: Scalars['String'];
-  reference: Scalars['String'];
-  version: Scalars['String'];
-  gitMetadata?: Maybe<MdGitMetadata>;
-  buildNumber?: Maybe<Scalars['String']>;
-  pinnedAt?: Maybe<Scalars['InstantTime']>;
-  pinnedBy?: Maybe<Scalars['String']>;
-  comment?: Maybe<Scalars['String']>;
-}
-
-export interface MdPullRequest {
-  __typename?: 'MdPullRequest';
-  number?: Maybe<Scalars['String']>;
-  link?: Maybe<Scalars['String']>;
-}
-
-export interface MdResource {
-  __typename?: 'MdResource';
-  id: Scalars['String'];
-  kind: Scalars['String'];
-  moniker?: Maybe<MdMoniker>;
-  state?: Maybe<MdResourceActuationState>;
-  artifact?: Maybe<MdArtifact>;
-  displayName?: Maybe<Scalars['String']>;
-  location?: Maybe<MdLocation>;
-  rawDefinition?: Maybe<Scalars['String']>;
-}
-
-export interface MdResourceActuationState {
-  __typename?: 'MdResourceActuationState';
-  resourceId: Scalars['String'];
-  status: MdResourceActuationStatus;
-  reason?: Maybe<Scalars['String']>;
-  event?: Maybe<Scalars['String']>;
-  tasks?: Maybe<Array<MdResourceTask>>;
-}
-
-export type MdResourceActuationStatus = 'PROCESSING' | 'UP_TO_DATE' | 'ERROR' | 'WAITING' | 'NOT_MANAGED' | 'DELETING';
-
-export interface MdResourceTask {
-  __typename?: 'MdResourceTask';
-  id: Scalars['String'];
-  name: Scalars['String'];
-  running: Scalars['Boolean'];
-  summary?: Maybe<MdExecutionSummary>;
-}
-
-export interface MdRestartConstraintEvaluationPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  type: Scalars['String'];
-  reference: Scalars['String'];
-  version: Scalars['String'];
-}
-
-export interface MdRetryArtifactActionPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  reference: Scalars['String'];
-  version: Scalars['String'];
-  actionId: Scalars['String'];
-  actionType: MdActionType;
-}
-
-export type MdRolloutTargetStatus = 'NOT_STARTED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
-
-export interface MdStageDetail {
-  __typename?: 'MdStageDetail';
-  id?: Maybe<Scalars['String']>;
-  type?: Maybe<Scalars['String']>;
-  name?: Maybe<Scalars['String']>;
-  startTime?: Maybe<Scalars['InstantTime']>;
-  endTime?: Maybe<Scalars['InstantTime']>;
-  status?: Maybe<MdTaskStatus>;
-  refId?: Maybe<Scalars['String']>;
-  requisiteStageRefIds?: Maybe<Array<Scalars['String']>>;
-}
-
-export type MdTaskStatus =
-  | 'NOT_STARTED'
-  | 'RUNNING'
-  | 'PAUSED'
-  | 'SUSPENDED'
-  | 'SUCCEEDED'
-  | 'FAILED_CONTINUE'
-  | 'TERMINAL'
-  | 'CANCELED'
-  | 'REDIRECT'
-  | 'STOPPED'
-  | 'BUFFERED'
-  | 'SKIPPED';
-
-export interface MdToggleResourceManagementPayload {
-  id: Scalars['ID'];
-  isPaused: Scalars['Boolean'];
-}
-
-export interface MdUnpinArtifactVersionPayload {
-  application: Scalars['String'];
-  environment: Scalars['String'];
-  reference: Scalars['String'];
-}
-
-export interface MdUpdateGitIntegrationPayload {
-  application: Scalars['String'];
-  isEnabled?: Maybe<Scalars['Boolean']>;
-  manifestPath?: Maybe<Scalars['String']>;
-}
-
-export interface MdVersionVeto {
-  __typename?: 'MdVersionVeto';
-  vetoedBy?: Maybe<Scalars['String']>;
-  vetoedAt?: Maybe<Scalars['InstantTime']>;
-  comment?: Maybe<Scalars['String']>;
-}
+export type Md_Warning_Type = 'TAG_TO_RELEASE_ARTIFACT';
 
 export interface Mutation {
   __typename?: 'Mutation';
   md_updateConstraintStatus?: Maybe<Scalars['Boolean']>;
   md_restartConstraintEvaluation?: Maybe<Scalars['Boolean']>;
   md_toggleManagement?: Maybe<Scalars['Boolean']>;
+  md_pauseManagement?: Maybe<Scalars['Boolean']>;
+  md_resumeManagement?: Maybe<Scalars['Boolean']>;
   md_pinArtifactVersion?: Maybe<Scalars['Boolean']>;
   md_markArtifactVersionAsBad?: Maybe<Scalars['Boolean']>;
   md_unpinArtifactVersion?: Maybe<Scalars['Boolean']>;
@@ -830,18 +611,16 @@ export interface Mutation {
   md_updateGitIntegration?: Maybe<Md_GitIntegration>;
   md_toggleResourceManagement?: Maybe<Scalars['Boolean']>;
   md_importDeliveryConfig?: Maybe<Scalars['Boolean']>;
-  updateConstraintStatus?: Maybe<Scalars['Boolean']>;
-  restartConstraintEvaluation?: Maybe<Scalars['Boolean']>;
-  toggleManagement?: Maybe<Scalars['Boolean']>;
-  pinArtifactVersion?: Maybe<Scalars['Boolean']>;
-  markArtifactVersionAsBad?: Maybe<Scalars['Boolean']>;
-  unpinArtifactVersion?: Maybe<Scalars['Boolean']>;
-  markArtifactVersionAsGood?: Maybe<Scalars['Boolean']>;
-  retryArtifactVersionAction?: Maybe<MdAction>;
-  dismissNotification?: Maybe<Scalars['Boolean']>;
-  updateGitIntegration?: Maybe<MdGitIntegration>;
-  toggleResourceManagement?: Maybe<Scalars['Boolean']>;
-  importDeliveryConfig?: Maybe<Scalars['Boolean']>;
+  md_rollbackToArtifactVersion?: Maybe<Scalars['Boolean']>;
+  md_lockEnvironmentArtifact?: Maybe<Scalars['Boolean']>;
+  md_redeployResource?: Maybe<Scalars['Boolean']>;
+  md_deployResourceImmediately?: Maybe<Scalars['Boolean']>;
+  md_initiateApplicationMigration?: Maybe<Md_Migration>;
+  md_autoSaveMigrationConfig?: Maybe<Scalars['Boolean']>;
+  md_migrationReportIssue?: Maybe<Scalars['Boolean']>;
+  md_recheckResource?: Maybe<Scalars['Boolean']>;
+  md_validateDeliveryConfig?: Maybe<Md_ValidateResult>;
+  md_analyzePipelines?: Maybe<Md_Migration>;
 }
 
 export interface MutationMd_UpdateConstraintStatusArgs {
@@ -856,6 +635,15 @@ export interface MutationMd_ToggleManagementArgs {
   application: Scalars['ID'];
   isPaused: Scalars['Boolean'];
   comment?: Maybe<Scalars['String']>;
+  cancelTasks?: Maybe<Scalars['Boolean']>;
+}
+
+export interface MutationMd_PauseManagementArgs {
+  payload: Md_PausePayload;
+}
+
+export interface MutationMd_ResumeManagementArgs {
+  application: Scalars['String'];
 }
 
 export interface MutationMd_PinArtifactVersionArgs {
@@ -883,79 +671,86 @@ export interface MutationMd_DismissNotificationArgs {
 }
 
 export interface MutationMd_UpdateGitIntegrationArgs {
-  payload?: Maybe<Md_UpdateGitIntegrationPayload>;
+  payload: Md_UpdateGitIntegrationPayload;
 }
 
 export interface MutationMd_ToggleResourceManagementArgs {
-  payload?: Maybe<Md_ToggleResourceManagementPayload>;
+  payload: Md_ToggleResourceManagementPayload;
 }
 
 export interface MutationMd_ImportDeliveryConfigArgs {
   application: Scalars['String'];
 }
 
-export interface MutationUpdateConstraintStatusArgs {
-  payload: MdConstraintStatusPayload;
+export interface MutationMd_RollbackToArtifactVersionArgs {
+  payload: Md_RollbackToVersionPayload;
 }
 
-export interface MutationRestartConstraintEvaluationArgs {
-  payload: MdRestartConstraintEvaluationPayload;
+export interface MutationMd_LockEnvironmentArtifactArgs {
+  payload: Md_ArtifactVersionActionPayload;
 }
 
-export interface MutationToggleManagementArgs {
-  application: Scalars['ID'];
-  isPaused: Scalars['Boolean'];
-  comment?: Maybe<Scalars['String']>;
+export interface MutationMd_RedeployResourceArgs {
+  payload: Md_RedeployResourcePayload;
 }
 
-export interface MutationPinArtifactVersionArgs {
-  payload: MdArtifactVersionActionPayload;
+export interface MutationMd_DeployResourceImmediatelyArgs {
+  payload: Md_DeployResourceImmediatelyPayload;
 }
 
-export interface MutationMarkArtifactVersionAsBadArgs {
-  payload: MdArtifactVersionActionPayload;
+export interface MutationMd_InitiateApplicationMigrationArgs {
+  payload: Md_InitiateApplicationMigrationPayload;
 }
 
-export interface MutationUnpinArtifactVersionArgs {
-  payload: MdUnpinArtifactVersionPayload;
+export interface MutationMd_AutoSaveMigrationConfigArgs {
+  payload: Md_InitiateApplicationMigrationPayload;
 }
 
-export interface MutationMarkArtifactVersionAsGoodArgs {
-  payload: MdMarkArtifactVersionAsGoodPayload;
+export interface MutationMd_MigrationReportIssueArgs {
+  payload: Md_MigrationReportIssuePayload;
 }
 
-export interface MutationRetryArtifactVersionActionArgs {
-  payload?: Maybe<MdRetryArtifactActionPayload>;
+export interface MutationMd_RecheckResourceArgs {
+  payload: Md_RecheckResourcePayload;
 }
 
-export interface MutationDismissNotificationArgs {
-  payload: MdDismissNotificationPayload;
+export interface MutationMd_ValidateDeliveryConfigArgs {
+  payload: Md_DeliveryConfigValidationPayload;
 }
 
-export interface MutationUpdateGitIntegrationArgs {
-  payload?: Maybe<MdUpdateGitIntegrationPayload>;
-}
-
-export interface MutationToggleResourceManagementArgs {
-  payload?: Maybe<MdToggleResourceManagementPayload>;
-}
-
-export interface MutationImportDeliveryConfigArgs {
+export interface MutationMd_AnalyzePipelinesArgs {
   application: Scalars['String'];
 }
 
 export interface Query {
   __typename?: 'Query';
-  application?: Maybe<MdApplication>;
-  md_application?: Maybe<Md_Application>;
-}
-
-export interface QueryApplicationArgs {
-  appName: Scalars['String'];
+  md_application?: Maybe<Md_ApplicationResult>;
+  md_migration?: Maybe<Md_Migration>;
+  md_gitIntegration?: Maybe<Md_GitIntegration>;
+  md_dryRun?: Maybe<Md_ActuationPlan>;
+  md_jsonSchema?: Maybe<Md_JsonSchema>;
 }
 
 export interface QueryMd_ApplicationArgs {
   appName: Scalars['String'];
+}
+
+export interface QueryMd_MigrationArgs {
+  appName: Scalars['String'];
+}
+
+export interface QueryMd_GitIntegrationArgs {
+  appName: Scalars['String'];
+}
+
+export interface QueryMd_DryRunArgs {
+  submittedDeliveryConfig: Scalars['String'];
+}
+
+export interface Spot_Service {
+  __typename?: 'SPOT_Service';
+  id: Scalars['ID'];
+  managedDelivery?: Maybe<Md_ApplicationResult>;
 }
 
 export type ActionDetailsFragment = { __typename?: 'MD_Action' } & Pick<
@@ -1038,29 +833,30 @@ export type FetchApplicationQueryVariables = Exact<{
 
 export type FetchApplicationQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
-        config?: Maybe<{ __typename?: 'MD_Config' } & Pick<Md_Config, 'id' | 'previewEnvironmentsConfigured'>>;
-        environments: Array<
-          { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'isDeleting'> & {
-              state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
-                  artifacts?: Maybe<
-                    Array<
-                      { __typename?: 'MD_Artifact' } & Pick<
-                        Md_Artifact,
-                        'id' | 'name' | 'environment' | 'type' | 'reference'
-                      > & {
-                          versions?: Maybe<
-                            Array<{ __typename?: 'MD_ArtifactVersionInEnvironment' } & DetailedVersionFieldsFragment>
-                          >;
-                          resources?: Maybe<Array<{ __typename?: 'MD_Resource' } & BaesResourceFieldsFragment>>;
-                        } & ArtifactPinnedVersionFieldsFragment
-                    >
-                  >;
-                  resources?: Maybe<Array<{ __typename?: 'MD_Resource' } & BaesResourceFieldsFragment>>;
-                };
-            } & BaseEnvironmentFieldsFragment
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
+          config?: Maybe<{ __typename?: 'MD_Config' } & Pick<Md_Config, 'id' | 'previewEnvironmentsConfigured'>>;
+          environments: Array<
+            { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'isDeleting'> & {
+                state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
+                    artifacts?: Maybe<
+                      Array<
+                        { __typename?: 'MD_Artifact' } & Pick<
+                          Md_Artifact,
+                          'id' | 'name' | 'environment' | 'type' | 'reference'
+                        > & {
+                            versions?: Maybe<
+                              Array<{ __typename?: 'MD_ArtifactVersionInEnvironment' } & DetailedVersionFieldsFragment>
+                            >;
+                            resources?: Maybe<Array<{ __typename?: 'MD_Resource' } & BaesResourceFieldsFragment>>;
+                          } & ArtifactPinnedVersionFieldsFragment
+                      >
+                    >;
+                    resources?: Maybe<Array<{ __typename?: 'MD_Resource' } & BaesResourceFieldsFragment>>;
+                  };
+              } & BaseEnvironmentFieldsFragment
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1070,36 +866,40 @@ export type FetchCurrentVersionQueryVariables = Exact<{
 
 export type FetchCurrentVersionQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
-        environments: Array<
-          { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
-              state: { __typename?: 'MD_EnvironmentState' } & {
-                artifacts?: Maybe<
-                  Array<
-                    { __typename?: 'MD_Artifact' } & Pick<Md_Artifact, 'id' | 'name' | 'reference' | 'environment'> & {
-                        versions?: Maybe<
-                          Array<
-                            { __typename?: 'MD_ArtifactVersionInEnvironment' } & Pick<
-                              Md_ArtifactVersionInEnvironment,
-                              'id' | 'version' | 'buildNumber' | 'createdAt'
-                            > & {
-                                gitMetadata?: Maybe<
-                                  { __typename?: 'MD_GitMetadata' } & Pick<Md_GitMetadata, 'commit'> & {
-                                      commitInfo?: Maybe<
-                                        { __typename?: 'MD_CommitInfo' } & Pick<Md_CommitInfo, 'sha' | 'message'>
-                                      >;
-                                    }
-                                >;
-                              }
-                          >
-                        >;
-                      }
-                  >
-                >;
-              };
-            }
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
+          environments: Array<
+            { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
+                state: { __typename?: 'MD_EnvironmentState' } & {
+                  artifacts?: Maybe<
+                    Array<
+                      { __typename?: 'MD_Artifact' } & Pick<
+                        Md_Artifact,
+                        'id' | 'name' | 'reference' | 'environment'
+                      > & {
+                          versions?: Maybe<
+                            Array<
+                              { __typename?: 'MD_ArtifactVersionInEnvironment' } & Pick<
+                                Md_ArtifactVersionInEnvironment,
+                                'id' | 'version' | 'buildNumber' | 'createdAt'
+                              > & {
+                                  gitMetadata?: Maybe<
+                                    { __typename?: 'MD_GitMetadata' } & Pick<Md_GitMetadata, 'commit'> & {
+                                        commitInfo?: Maybe<
+                                          { __typename?: 'MD_CommitInfo' } & Pick<Md_CommitInfo, 'sha' | 'message'>
+                                        >;
+                                      }
+                                  >;
+                                }
+                            >
+                          >;
+                        }
+                    >
+                  >;
+                };
+              }
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1110,48 +910,49 @@ export type FetchVersionsHistoryQueryVariables = Exact<{
 
 export type FetchVersionsHistoryQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
-        environments: Array<
-          { __typename?: 'MD_Environment' } & {
-            state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
-                artifacts?: Maybe<
-                  Array<
-                    { __typename?: 'MD_Artifact' } & Pick<
-                      Md_Artifact,
-                      'id' | 'name' | 'environment' | 'type' | 'reference'
-                    > & {
-                        versions?: Maybe<
-                          Array<
-                            { __typename?: 'MD_ArtifactVersionInEnvironment' } & Pick<
-                              Md_ArtifactVersionInEnvironment,
-                              'id' | 'buildNumber' | 'version' | 'createdAt' | 'status' | 'isCurrent'
-                            > & {
-                                gitMetadata?: Maybe<
-                                  { __typename?: 'MD_GitMetadata' } & Pick<
-                                    Md_GitMetadata,
-                                    'commit' | 'author' | 'branch'
-                                  > & {
-                                      commitInfo?: Maybe<
-                                        { __typename?: 'MD_CommitInfo' } & Pick<
-                                          Md_CommitInfo,
-                                          'sha' | 'link' | 'message'
-                                        >
-                                      >;
-                                      pullRequest?: Maybe<
-                                        { __typename?: 'MD_PullRequest' } & Pick<Md_PullRequest, 'number' | 'link'>
-                                      >;
-                                    }
-                                >;
-                              }
-                          >
-                        >;
-                      } & ArtifactPinnedVersionFieldsFragment
-                  >
-                >;
-              };
-          } & BaseEnvironmentFieldsFragment
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
+          environments: Array<
+            { __typename?: 'MD_Environment' } & {
+              state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
+                  artifacts?: Maybe<
+                    Array<
+                      { __typename?: 'MD_Artifact' } & Pick<
+                        Md_Artifact,
+                        'id' | 'name' | 'environment' | 'type' | 'reference'
+                      > & {
+                          versions?: Maybe<
+                            Array<
+                              { __typename?: 'MD_ArtifactVersionInEnvironment' } & Pick<
+                                Md_ArtifactVersionInEnvironment,
+                                'id' | 'buildNumber' | 'version' | 'createdAt' | 'status' | 'isCurrent'
+                              > & {
+                                  gitMetadata?: Maybe<
+                                    { __typename?: 'MD_GitMetadata' } & Pick<
+                                      Md_GitMetadata,
+                                      'commit' | 'author' | 'branch'
+                                    > & {
+                                        commitInfo?: Maybe<
+                                          { __typename?: 'MD_CommitInfo' } & Pick<
+                                            Md_CommitInfo,
+                                            'sha' | 'link' | 'message'
+                                          >
+                                        >;
+                                        pullRequest?: Maybe<
+                                          { __typename?: 'MD_PullRequest' } & Pick<Md_PullRequest, 'number' | 'link'>
+                                        >;
+                                      }
+                                  >;
+                                }
+                            >
+                          >;
+                        } & ArtifactPinnedVersionFieldsFragment
+                    >
+                  >;
+                };
+            } & BaseEnvironmentFieldsFragment
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1161,23 +962,24 @@ export type FetchPinnedVersionsQueryVariables = Exact<{
 
 export type FetchPinnedVersionsQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'account'> & {
-        environments: Array<
-          { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
-              state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
-                  artifacts?: Maybe<
-                    Array<
-                      { __typename?: 'MD_Artifact' } & Pick<
-                        Md_Artifact,
-                        'id' | 'name' | 'environment' | 'type' | 'reference'
-                      > &
-                        ArtifactPinnedVersionFieldsFragment
-                    >
-                  >;
-                };
-            }
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'account'> & {
+          environments: Array<
+            { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
+                state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
+                    artifacts?: Maybe<
+                      Array<
+                        { __typename?: 'MD_Artifact' } & Pick<
+                          Md_Artifact,
+                          'id' | 'name' | 'environment' | 'type' | 'reference'
+                        > &
+                          ArtifactPinnedVersionFieldsFragment
+                      >
+                    >;
+                  };
+              }
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1188,26 +990,27 @@ export type FetchVersionQueryVariables = Exact<{
 
 export type FetchVersionQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'account'> & {
-        environments: Array<
-          { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
-              state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
-                  artifacts?: Maybe<
-                    Array<
-                      { __typename?: 'MD_Artifact' } & Pick<
-                        Md_Artifact,
-                        'id' | 'name' | 'environment' | 'type' | 'reference'
-                      > & {
-                          versions?: Maybe<
-                            Array<{ __typename?: 'MD_ArtifactVersionInEnvironment' } & DetailedVersionFieldsFragment>
-                          >;
-                        }
-                    >
-                  >;
-                };
-            }
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'account'> & {
+          environments: Array<
+            { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
+                state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
+                    artifacts?: Maybe<
+                      Array<
+                        { __typename?: 'MD_Artifact' } & Pick<
+                          Md_Artifact,
+                          'id' | 'name' | 'environment' | 'type' | 'reference'
+                        > & {
+                            versions?: Maybe<
+                              Array<{ __typename?: 'MD_ArtifactVersionInEnvironment' } & DetailedVersionFieldsFragment>
+                            >;
+                          }
+                      >
+                    >;
+                  };
+              }
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1217,30 +1020,31 @@ export type FetchResourceStatusQueryVariables = Exact<{
 
 export type FetchResourceStatusQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
-        environments: Array<
-          { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
-              state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
-                  resources?: Maybe<
-                    Array<
-                      { __typename?: 'MD_Resource' } & Pick<Md_Resource, 'id' | 'kind'> & {
-                          state?: Maybe<
-                            { __typename?: 'MD_ResourceActuationState' } & Pick<
-                              Md_ResourceActuationState,
-                              'status' | 'reason' | 'event'
-                            > & {
-                                tasks?: Maybe<
-                                  Array<{ __typename?: 'MD_ResourceTask' } & Pick<Md_ResourceTask, 'id' | 'name'>>
-                                >;
-                              }
-                          >;
-                        }
-                    >
-                  >;
-                };
-            }
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
+          environments: Array<
+            { __typename?: 'MD_Environment' } & Pick<Md_Environment, 'id' | 'name'> & {
+                state: { __typename?: 'MD_EnvironmentState' } & Pick<Md_EnvironmentState, 'id'> & {
+                    resources?: Maybe<
+                      Array<
+                        { __typename?: 'MD_Resource' } & Pick<Md_Resource, 'id' | 'kind'> & {
+                            state?: Maybe<
+                              { __typename?: 'MD_ResourceActuationState' } & Pick<
+                                Md_ResourceActuationState,
+                                'status' | 'reason' | 'event'
+                              > & {
+                                  tasks?: Maybe<
+                                    Array<{ __typename?: 'MD_ResourceTask' } & Pick<Md_ResourceTask, 'id' | 'name'>>
+                                  >;
+                                }
+                            >;
+                          }
+                      >
+                    >;
+                  };
+              }
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1250,16 +1054,17 @@ export type FetchNotificationsQueryVariables = Exact<{
 
 export type FetchNotificationsQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
-        notifications?: Maybe<
-          Array<
-            { __typename?: 'MD_Notification' } & Pick<
-              Md_Notification,
-              'id' | 'level' | 'message' | 'triggeredAt' | 'link'
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name'> & {
+          notifications?: Maybe<
+            Array<
+              { __typename?: 'MD_Notification' } & Pick<
+                Md_Notification,
+                'id' | 'level' | 'message' | 'triggeredAt' | 'link'
+              >
             >
-          >
-        >;
-      }
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1269,17 +1074,18 @@ export type FetchApplicationManagementDataQueryVariables = Exact<{
 
 export type FetchApplicationManagementDataQuery = { __typename?: 'Query' } & {
   application?: Maybe<
-    { __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'isPaused'> & {
-        config?: Maybe<
-          { __typename?: 'MD_Config' } & Pick<Md_Config, 'id' | 'updatedAt' | 'rawConfig' | 'processedConfig'>
-        >;
-        gitIntegration?: Maybe<
-          { __typename?: 'MD_GitIntegration' } & Pick<
-            Md_GitIntegration,
-            'id' | 'repository' | 'branch' | 'isEnabled' | 'link' | 'manifestPath'
-          >
-        >;
-      }
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'isPaused'> & {
+          config?: Maybe<
+            { __typename?: 'MD_Config' } & Pick<Md_Config, 'id' | 'updatedAt' | 'rawConfig' | 'processedConfig'>
+          >;
+          gitIntegration?: Maybe<
+            { __typename?: 'MD_GitIntegration' } & Pick<
+              Md_GitIntegration,
+              'id' | 'repository' | 'branch' | 'isEnabled' | 'link' | 'manifestPath'
+            >
+          >;
+        })
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
   >;
 };
 
@@ -1288,7 +1094,10 @@ export type FetchApplicationManagementStatusQueryVariables = Exact<{
 }>;
 
 export type FetchApplicationManagementStatusQuery = { __typename?: 'Query' } & {
-  application?: Maybe<{ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'isPaused'>>;
+  application?: Maybe<
+    | ({ __typename?: 'MD_Application' } & Pick<Md_Application, 'id' | 'name' | 'isPaused'>)
+    | ({ __typename?: 'MD_Error' } & Pick<Md_Error, 'message'>)
+  >;
 };
 
 export type UpdateConstraintMutationVariables = Exact<{
@@ -1357,7 +1166,7 @@ export type ImportDeliveryConfigMutationVariables = Exact<{
 export type ImportDeliveryConfigMutation = { __typename?: 'Mutation' } & Pick<Mutation, 'md_importDeliveryConfig'>;
 
 export type ToggleResourceManagementMutationVariables = Exact<{
-  payload?: Maybe<Md_ToggleResourceManagementPayload>;
+  payload: Md_ToggleResourceManagementPayload;
 }>;
 
 export type ToggleResourceManagementMutation = { __typename?: 'Mutation' } & Pick<
@@ -1491,35 +1300,40 @@ export const BaesResourceFieldsFragmentDoc = gql`
 export const FetchApplicationDocument = gql`
   query fetchApplication($appName: String!, $statuses: [MD_ArtifactStatusInEnvironment!]) {
     application: md_application(appName: $appName) {
-      id
-      name
-      config {
+      ... on MD_Application {
         id
-        previewEnvironmentsConfigured
-      }
-      environments {
-        ...baseEnvironmentFields
-        isDeleting
-        state {
+        name
+        config {
           id
-          artifacts {
+          previewEnvironmentsConfigured
+        }
+        environments {
+          ...baseEnvironmentFields
+          isDeleting
+          state {
             id
-            name
-            environment
-            type
-            reference
-            versions(statuses: $statuses) {
-              ...detailedVersionFields
+            artifacts {
+              id
+              name
+              environment
+              type
+              reference
+              versions(statuses: $statuses) {
+                ...detailedVersionFields
+              }
+              ...artifactPinnedVersionFields
+              resources {
+                ...baesResourceFields
+              }
             }
-            ...artifactPinnedVersionFields
             resources {
               ...baesResourceFields
             }
           }
-          resources {
-            ...baesResourceFields
-          }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1564,32 +1378,37 @@ export type FetchApplicationQueryResult = Apollo.QueryResult<FetchApplicationQue
 export const FetchCurrentVersionDocument = gql`
   query fetchCurrentVersion($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      environments {
+      ... on MD_Application {
         id
         name
-        state {
-          artifacts {
-            id
-            name
-            reference
-            environment
-            versions(statuses: [CURRENT]) {
+        environments {
+          id
+          name
+          state {
+            artifacts {
               id
-              version
-              buildNumber
-              createdAt
-              gitMetadata {
-                commit
-                commitInfo {
-                  sha
-                  message
+              name
+              reference
+              environment
+              versions(statuses: [CURRENT]) {
+                id
+                version
+                buildNumber
+                createdAt
+                gitMetadata {
+                  commit
+                  commitInfo {
+                    sha
+                    message
+                  }
                 }
               }
             }
           }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1638,43 +1457,48 @@ export type FetchCurrentVersionQueryResult = Apollo.QueryResult<
 export const FetchVersionsHistoryDocument = gql`
   query fetchVersionsHistory($appName: String!, $limit: Int) {
     application: md_application(appName: $appName) {
-      id
-      name
-      environments {
-        ...baseEnvironmentFields
-        state {
-          id
-          artifacts {
+      ... on MD_Application {
+        id
+        name
+        environments {
+          ...baseEnvironmentFields
+          state {
             id
-            name
-            environment
-            type
-            reference
-            versions(limit: $limit) {
+            artifacts {
               id
-              buildNumber
-              version
-              createdAt
-              status
-              isCurrent
-              gitMetadata {
-                commit
-                author
-                branch
-                commitInfo {
-                  sha
-                  link
-                  message
-                }
-                pullRequest {
-                  number
-                  link
+              name
+              environment
+              type
+              reference
+              versions(limit: $limit) {
+                id
+                buildNumber
+                version
+                createdAt
+                status
+                isCurrent
+                gitMetadata {
+                  commit
+                  author
+                  branch
+                  commitInfo {
+                    sha
+                    link
+                    message
+                  }
+                  pullRequest {
+                    number
+                    link
+                  }
                 }
               }
+              ...artifactPinnedVersionFields
             }
-            ...artifactPinnedVersionFields
           }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1726,23 +1550,28 @@ export type FetchVersionsHistoryQueryResult = Apollo.QueryResult<
 export const FetchPinnedVersionsDocument = gql`
   query fetchPinnedVersions($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      account
-      environments {
+      ... on MD_Application {
         id
         name
-        state {
+        account
+        environments {
           id
-          artifacts {
+          name
+          state {
             id
-            name
-            environment
-            type
-            reference
-            ...artifactPinnedVersionFields
+            artifacts {
+              id
+              name
+              environment
+              type
+              reference
+              ...artifactPinnedVersionFields
+            }
           }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1792,25 +1621,30 @@ export type FetchPinnedVersionsQueryResult = Apollo.QueryResult<
 export const FetchVersionDocument = gql`
   query fetchVersion($appName: String!, $versions: [String!]) {
     application: md_application(appName: $appName) {
-      id
-      name
-      account
-      environments {
+      ... on MD_Application {
         id
         name
-        state {
+        account
+        environments {
           id
-          artifacts {
+          name
+          state {
             id
-            name
-            environment
-            type
-            reference
-            versions(versions: $versions) {
-              ...detailedVersionFields
+            artifacts {
+              id
+              name
+              environment
+              type
+              reference
+              versions(versions: $versions) {
+                ...detailedVersionFields
+              }
             }
           }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1852,27 +1686,32 @@ export type FetchVersionQueryResult = Apollo.QueryResult<FetchVersionQuery, Fetc
 export const FetchResourceStatusDocument = gql`
   query fetchResourceStatus($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      environments {
+      ... on MD_Application {
         id
         name
-        state {
+        environments {
           id
-          resources {
+          name
+          state {
             id
-            kind
-            state {
-              status
-              reason
-              event
-              tasks {
-                id
-                name
+            resources {
+              id
+              kind
+              state {
+                status
+                reason
+                event
+                tasks {
+                  id
+                  name
+                }
               }
             }
           }
         }
+      }
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -1921,15 +1760,20 @@ export type FetchResourceStatusQueryResult = Apollo.QueryResult<
 export const FetchNotificationsDocument = gql`
   query fetchNotifications($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      notifications {
+      ... on MD_Application {
         id
-        level
+        name
+        notifications {
+          id
+          level
+          message
+          triggeredAt
+          link
+          id
+        }
+      }
+      ... on MD_Error {
         message
-        triggeredAt
-        link
-        id
       }
     }
   }
@@ -1978,22 +1822,27 @@ export type FetchNotificationsQueryResult = Apollo.QueryResult<
 export const FetchApplicationManagementDataDocument = gql`
   query fetchApplicationManagementData($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      isPaused
-      config {
+      ... on MD_Application {
         id
-        updatedAt
-        rawConfig
-        processedConfig
+        name
+        isPaused
+        config {
+          id
+          updatedAt
+          rawConfig
+          processedConfig
+        }
+        gitIntegration {
+          id
+          repository
+          branch
+          isEnabled
+          link
+          manifestPath
+        }
       }
-      gitIntegration {
-        id
-        repository
-        branch
-        isEnabled
-        link
-        manifestPath
+      ... on MD_Error {
+        message
       }
     }
   }
@@ -2050,9 +1899,14 @@ export type FetchApplicationManagementDataQueryResult = Apollo.QueryResult<
 export const FetchApplicationManagementStatusDocument = gql`
   query fetchApplicationManagementStatus($appName: String!) {
     application: md_application(appName: $appName) {
-      id
-      name
-      isPaused
+      ... on MD_Application {
+        id
+        name
+        isPaused
+      }
+      ... on MD_Error {
+        message
+      }
     }
   }
 `;
@@ -2520,7 +2374,7 @@ export type ImportDeliveryConfigMutationOptions = Apollo.BaseMutationOptions<
   ImportDeliveryConfigMutationVariables
 >;
 export const ToggleResourceManagementDocument = gql`
-  mutation ToggleResourceManagement($payload: MD_ToggleResourceManagementPayload) {
+  mutation ToggleResourceManagement($payload: MD_ToggleResourceManagementPayload!) {
     md_toggleResourceManagement(payload: $payload)
   }
 `;

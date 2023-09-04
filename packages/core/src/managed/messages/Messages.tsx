@@ -28,6 +28,11 @@ const AppNotifications = () => {
     }
   }, [error, logEvent]);
 
+  if (data?.application?.__typename !== 'MD_Application') {
+    // eslint-disable-next-line no-console
+    console.log('osorianolog unexpected graphql error response');
+    return null;
+  }
   const notifications = data?.application?.notifications || [];
   const isDebug = getIsDebugMode();
 

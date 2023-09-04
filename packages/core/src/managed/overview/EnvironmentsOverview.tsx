@@ -20,7 +20,7 @@ export const EnvironmentsOverview = () => {
   });
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
-  const environments = data?.application?.environments || [];
+  const environments = (data?.application?.__typename === 'MD_Application' && data.application.environments) || [];
   const { environments: regularEnvironments, ...regularEnvironmentsProps } = useOrderedEnvironment(
     wrapperRef,
     environments.filter((env) => !env.isPreview),
@@ -31,13 +31,18 @@ export const EnvironmentsOverview = () => {
     environments.filter((env) => env.isPreview),
   );
 
-  const previewEnvironmentsConfigured = data?.application?.config?.previewEnvironmentsConfigured;
+  const previewEnvironmentsConfigured =
+    data?.application?.__typename === 'MD_Application' && data.application.config?.previewEnvironmentsConfigured;
 
   let content;
   if (loading && !data) {
     content = <Spinner {...spinnerProps} message="Loading environments..." />;
   } else if (error) {
     content = <ApplicationQueryError hasApplicationData={Boolean(data?.application)} error={error} />;
+  } else if (data?.application?.__typename !== 'MD_Application') {
+    // eslint-disable-next-line no-console
+    console.log('osorianolog got error application response');
+    content = null;
   } else {
     content = (
       <>

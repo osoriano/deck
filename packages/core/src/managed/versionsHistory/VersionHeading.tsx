@@ -4,7 +4,7 @@ import { sortBy, toNumber } from 'lodash';
 import React from 'react';
 
 import { getEnvTitle } from '../environmentBaseElements/BaseEnvironment';
-import type { FetchVersionQueryVariables, MdArtifactStatusInEnvironment } from '../graphql/graphql-sdk';
+import type { FetchVersionQueryVariables, Md_ArtifactStatusInEnvironment } from '../graphql/graphql-sdk';
 import { FetchVersionDocument } from '../graphql/graphql-sdk';
 import { GitLink } from '../overview/artifact/GitLink';
 import { Icon, Tooltip, useApplicationContextSafe } from '../../presentation';
@@ -21,13 +21,13 @@ import {
 
 import './VersionsHistory.less';
 
-type VersionStatus = MdArtifactStatusInEnvironment;
+type VersionStatus = Md_ArtifactStatusInEnvironment;
 
 const getEnvStatusSummary = (artifacts: HistoryArtifactVersion[]): VersionStatus => {
   // We sort from the newest to the oldest
   const sortedArtifacts = sortBy(artifacts, (artifact) => -1 * toNumber(artifact.buildNumber || 0));
 
-  let status: MdArtifactStatusInEnvironment = 'SKIPPED';
+  let status: Md_ArtifactStatusInEnvironment = 'SKIPPED';
   for (const artifact of sortedArtifacts) {
     switch (artifact.status) {
       case 'CURRENT':

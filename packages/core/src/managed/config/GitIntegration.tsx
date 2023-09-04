@@ -10,8 +10,10 @@ import { Spinner } from '../../widgets/spinners/Spinner';
 
 import './GitIntegration.less';
 
+// todo: Trying to extract type by { __typename: 'MD_Application' } does not work
+// use{ name: string } as a workaround
 type IGitIntegrationProps = NonNullable<
-  NonNullable<FetchApplicationManagementDataQuery['application']>['gitIntegration']
+  Extract<FetchApplicationManagementDataQuery['application'], { name: string }>['gitIntegration']
 >;
 
 const ManifestPath = ({ manifestPath }: Pick<IGitIntegrationProps, 'manifestPath'>) => {

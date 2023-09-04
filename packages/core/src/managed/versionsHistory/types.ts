@@ -1,11 +1,15 @@
 import type { DateTime } from 'luxon';
 import type { FetchVersionQuery, FetchVersionsHistoryQuery } from '../graphql/graphql-sdk';
 
-export type HistoryEnvironment = NonNullable<FetchVersionsHistoryQuery['application']>['environments'][number];
+export type HistoryEnvironment = NonNullable<
+  Extract<FetchVersionsHistoryQuery['application'], { name: string }>
+>['environments'][number];
 export type HistoryArtifact = NonNullable<HistoryEnvironment['state']['artifacts']>[number];
 export type HistoryArtifactVersion = NonNullable<HistoryArtifact['versions']>[number];
 
-export type SingleVersionEnvironment = NonNullable<FetchVersionQuery['application']>['environments'][number];
+export type SingleVersionEnvironment = NonNullable<
+  Extract<FetchVersionQuery['application'], { name: string }>
+>['environments'][number];
 export type SingleVersionArtifact = NonNullable<SingleVersionEnvironment['state']['artifacts']>[number];
 export type SingleVersionArtifactVersion = NonNullable<SingleVersionArtifact['versions']>[number];
 
